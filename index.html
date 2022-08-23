@@ -1,0 +1,733 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>@xenon_so/client-sdk</title>
+	<meta name="description" content="Documentation for @xenon_so/client-sdk">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">@xenon_so/client-sdk</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1>@xenon_so/client-sdk</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<a href="#xenon-sdk" id="xenon-sdk" style="color: inherit; text-decoration: none;">
+					<h1>Xenon SDK</h1>
+				</a>
+				<p>Javascript SDK for interacting with XENON programs</p>
+				<a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
+					<h2>Installation</h2>
+				</a>
+				<a href="#yarn" id="yarn" style="color: inherit; text-decoration: none;">
+					<h3>Yarn</h3>
+				</a>
+				<pre><code>yarn <span class="hljs-keyword">add</span> <span class="hljs-title">@xenon</span>/client-sdk
+</code></pre>
+				<a href="#npm" id="npm" style="color: inherit; text-decoration: none;">
+					<h3>npm</h3>
+				</a>
+				<pre><code><span class="hljs-built_in">npm</span> install @xenon/client-sdk
+</code></pre>
+				<a href="#basic-usage" id="basic-usage" style="color: inherit; text-decoration: none;">
+					<h2>Basic usage</h2>
+				</a>
+				<a href="#trader-deposit" id="trader-deposit" style="color: inherit; text-decoration: none;">
+					<h3>Trader Deposit</h3>
+				</a>
+				<pre><code class="language-js"><span class="hljs-keyword">import</span> { XenonTraderClient } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@xenon/client-sdk&#x27;</span>
+
+...
+<span class="hljs-keyword">const</span> xenonTraderClient = <span class="hljs-keyword">new</span> XenonTraderClient(connection, publicKey)
+
+<span class="hljs-keyword">await</span> xenonTraderClient.load();
+
+<span class="hljs-keyword">const</span> transaction = <span class="hljs-keyword">new</span> Transaction();
+
+<span class="hljs-keyword">await</span> client.traderDeposit(transaction, amount, mintAddress, selectedToken === <span class="hljs-string">&#x27;SOL&#x27;</span> ? <span class="hljs-literal">true</span> : <span class="hljs-literal">false</span>);
+
+sendTransaction()...
+...
+</code></pre>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-class">
+						<a href="classes/bnlayout.html" class="tsd-kind-icon">BNLayout</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/decimalslayout.html" class="tsd-kind-icon">Decimals<wbr>Layout</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/publickeylayout.html" class="tsd-kind-icon">Public<wbr>Key<wbr>Layout</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/u64f64layout.html" class="tsd-kind-icon">U64<wbr>F64<wbr>Layout</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/xenonlenderclient.html" class="tsd-kind-icon">Xenon<wbr>Lender<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/xenonliquidatorclient.html" class="tsd-kind-icon">Xenon<wbr>Liquidator<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/xenontraderclient.html" class="tsd-kind-icon">Xenon<wbr>Trader<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/addtokentomargin.html" class="tsd-kind-icon">Add<wbr>Token<wbr>ToMargin</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/admintrade.html" class="tsd-kind-icon">Admin<wbr>Trade</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/decimals.html" class="tsd-kind-icon">DECIMALS</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/fees.html" class="tsd-kind-icon">Fees</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/lp_token.html" class="tsd-kind-icon">LP_<wbr>token</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/memcmp.html" class="tsd-kind-icon">Memcmp</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/paramclass.html" class="tsd-kind-icon">Param<wbr>Class</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/rpcfilter.html" class="tsd-kind-icon">RPCFilter</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/rpcrequest.html" class="tsd-kind-icon">RPCRequest</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/solend_reserve.html" class="tsd-kind-icon">SOLEND_<wbr>RESERVE</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/solend_reserves.html" class="tsd-kind-icon">SOLEND_<wbr>RESERVES</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/saber_lp.html" class="tsd-kind-icon">Saber_<wbr>LP</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/state.html" class="tsd-kind-icon">State</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/token.html" class="tsd-kind-icon">TOKEN</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/token_info.html" class="tsd-kind-icon">TOKEN_<wbr>INFO</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/token.html" class="tsd-kind-icon">Token</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/token2.html" class="tsd-kind-icon">Token2</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tokenaccount.html" class="tsd-kind-icon">Token<wbr>Account</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tokenextensions.html" class="tsd-kind-icon">Token<wbr>Extensions</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tokeninfo.html" class="tsd-kind-icon">Token<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tokeninfos.html" class="tsd-kind-icon">Token<wbr>Infos</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/xenon_data.html" class="tsd-kind-icon">XENON_<wbr>DATA</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/xx.html" class="tsd-kind-icon">xx</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#account_layout" class="tsd-kind-icon">ACCOUNT_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#adapter_account_layout" class="tsd-kind-icon">ADAPTER_<wbr>ACCOUNT_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#adapter_info_layout" class="tsd-kind-icon">ADAPTER_<wbr>INFO_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#associated_token_program_id" class="tsd-kind-icon">ASSOCIATED_<wbr>TOKEN_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#clock_program_id" class="tsd-kind-icon">CLOCK_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#decimal" class="tsd-kind-icon">Decimal</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mango_adapter_account_layout" class="tsd-kind-icon">MANGO_<wbr>ADAPTER_<wbr>ACCOUNT_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mango_adaptor_check_account" class="tsd-kind-icon">MANGO_<wbr>ADAPTOR_<wbr>CHECK_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mango_group_account_v3" class="tsd-kind-icon">MANGO_<wbr>GROUP_<wbr>ACCOUNT_<wbr><wbr>V3</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mango_program_id_v3" class="tsd-kind-icon">MANGO_<wbr>PROGRAM_<wbr>ID_<wbr><wbr>V3</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#margin_data_layout" class="tsd-kind-icon">MARGIN_<wbr>DATA_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#memo_program_id" class="tsd-kind-icon">MEMO_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_btc" class="tsd-kind-icon">ORACLE_<wbr>BTC</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_eth" class="tsd-kind-icon">ORACLE_<wbr>ETH</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_saber_usdc" class="tsd-kind-icon">ORACLE_<wbr>SABER_<wbr>USDC</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_saber_usdt" class="tsd-kind-icon">ORACLE_<wbr>SABER_<wbr>USDT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_sol" class="tsd-kind-icon">ORACLE_<wbr>SOL</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#oracle_usdc" class="tsd-kind-icon">ORACLE_<wbr>USDC</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#perp_markets" class="tsd-kind-icon">PERP_<wbr>MARKETS</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_account" class="tsd-kind-icon">QUARRY_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_adapter_account" class="tsd-kind-icon">QUARRY_<wbr>ADAPTER_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_check_data" class="tsd-kind-icon">QUARRY_<wbr>CHECK_<wbr>DATA</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_miner_account" class="tsd-kind-icon">QUARRY_<wbr>MINER_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_minter" class="tsd-kind-icon">QUARRY_<wbr>MINTER</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_mint_wrapper" class="tsd-kind-icon">QUARRY_<wbr>MINT_<wbr>WRAPPER</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_mint_wrapper_program" class="tsd-kind-icon">QUARRY_<wbr>MINT_<wbr>WRAPPER_<wbr>PROGRAM</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_rewarder" class="tsd-kind-icon">QUARRY_<wbr>REWARDER</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_rewarder_account" class="tsd-kind-icon">QUARRY_<wbr>REWARDER_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_rewarder_ata" class="tsd-kind-icon">QUARRY_<wbr>REWARDER_<wbr>ATA</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarry_reward_mint" class="tsd-kind-icon">QUARRY_<wbr>REWARD_<wbr>MINT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#rent_program_id" class="tsd-kind-icon">RENT_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#reserve_info_layout" class="tsd-kind-icon">RESERVE_<wbr>INFO_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_adapter_account" class="tsd-kind-icon">SABER_<wbr>ADAPTER_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_lps" class="tsd-kind-icon">SABER_<wbr>LPS</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_lp_list" class="tsd-kind-icon">SABER_<wbr>LP_<wbr>LIST</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_usdc" class="tsd-kind-icon">SABER_<wbr>USDC</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_usdc_usdt_lp" class="tsd-kind-icon">SABER_<wbr>USDC_<wbr>USDT_<wbr>LP</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_usdc_usdt_lp_reserve_1" class="tsd-kind-icon">SABER_<wbr>USDC_<wbr>USDT_<wbr>LP_<wbr>RESERVE_<wbr>1</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_usdc_usdt_lp_reserve_2" class="tsd-kind-icon">SABER_<wbr>USDC_<wbr>USDT_<wbr>LP_<wbr>RESERVE_<wbr>2</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saber_usdt" class="tsd-kind-icon">SABER_<wbr>USDT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#serum_program_id_v3" class="tsd-kind-icon">SERUM_<wbr>PROGRAM_<wbr>ID_<wbr><wbr>V3</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solend_adapter_account" class="tsd-kind-icon">SOLEND_<wbr>ADAPTER_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solend_adaptor_check_account" class="tsd-kind-icon">SOLEND_<wbr>ADAPTOR_<wbr>CHECK_<wbr>ACCOUNT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solend_derieved_market" class="tsd-kind-icon">SOLEND_<wbr>DERIEVED_<wbr>MARKET</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solend_market" class="tsd-kind-icon">SOLEND_<wbr>MARKET</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solend_reserves" class="tsd-kind-icon">SOLEND_<wbr>RESERVES</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#system_program_id" class="tsd-kind-icon">SYSTEM_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#serumprogramid" class="tsd-kind-icon">Serum<wbr>ProgramID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#tokens" class="tsd-kind-icon">TOKENS</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_account_layout" class="tsd-kind-icon">TOKEN_<wbr>ACCOUNT_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_btc" class="tsd-kind-icon">TOKEN_<wbr>BTC</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_eth" class="tsd-kind-icon">TOKEN_<wbr>ETH</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_infos" class="tsd-kind-icon">TOKEN_<wbr>INFOS</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_info_layout" class="tsd-kind-icon">TOKEN_<wbr>INFO_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_program_id" class="tsd-kind-icon">TOKEN_<wbr>PROGRAM_<wbr>ID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#token_sol" class="tsd-kind-icon">TOKEN_<wbr>SOL</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#user_keypair" class="tsd-kind-icon">USER_<wbr>KEYPAIR</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#user_private_key" class="tsd-kind-icon">USER_<wbr>PRIVATE_<wbr>KEY</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#wallet_private_key" class="tsd-kind-icon">WALLET_<wbr>PRIVATE_<wbr>KEY</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#xenon_data_layout" class="tsd-kind-icon">XENON_<wbr>DATA_<wbr>LAYOUT</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#connection" class="tsd-kind-icon">connection</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#devnetlplist" class="tsd-kind-icon">devnet<wbr>LpList</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#ids" class="tsd-kind-icon">ids</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#idsindex" class="tsd-kind-icon">ids<wbr>Index</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#ismainnet" class="tsd-kind-icon">is<wbr>Mainnet</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#magic" class="tsd-kind-icon">magic</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mainnetlplist" class="tsd-kind-icon">mainnet<wbr>LpList</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mangoadapterprogramid" class="tsd-kind-icon">mango<wbr>Adapter<wbr>Program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mangocache" class="tsd-kind-icon">mango<wbr>Cache</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mangogadapterpk" class="tsd-kind-icon">mangoGAdapter<wbr>Pk</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#mangoprogramid" class="tsd-kind-icon">mango<wbr>ProgramID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#programid" class="tsd-kind-icon">program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarryadapterprogramid" class="tsd-kind-icon">quarry<wbr>Adapter<wbr>Program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarrygadapterpk" class="tsd-kind-icon">quarryGAdapter<wbr>Pk</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#quarryprogramid" class="tsd-kind-icon">quarry<wbr>Program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saberadapterprogramid" class="tsd-kind-icon">saber<wbr>Adapter<wbr>Program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#sabergadapterpk" class="tsd-kind-icon">saberGAdapter<wbr>Pk</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#saberprogramid" class="tsd-kind-icon">saber<wbr>ProgramID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solendadapterprogramid" class="tsd-kind-icon">solend<wbr>Adapter<wbr>Program<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solendgadapterpk" class="tsd-kind-icon">solendGAdapter<wbr>Pk</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#solendprogramid" class="tsd-kind-icon">solend<wbr>ProgramID</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#xenonpda" class="tsd-kind-icon">xenonPDA</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#u128u8" class="tsd-kind-icon">U128<wbr>U8</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#u64f64" class="tsd-kind-icon">U64<wbr>F64</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#awaittransactionsignatureconfirmation" class="tsd-kind-icon">await<wbr>Transaction<wbr>Signature<wbr>Confirmation</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#awaittransactionsignatureconfirmation2" class="tsd-kind-icon">await<wbr>Transaction<wbr>Signature<wbr>Confirmation2</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#borrow" class="tsd-kind-icon">borrow</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildgetaccountinfo" class="tsd-kind-icon">build<wbr>Get<wbr>Account<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildgetmultipleaccounts" class="tsd-kind-icon">build<wbr>Get<wbr>Multiple<wbr>Accounts</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildgetprogramaccountsrequest" class="tsd-kind-icon">build<wbr>Get<wbr>Program<wbr>Accounts<wbr>Request</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildgettokenaccountbalance" class="tsd-kind-icon">build<wbr>Get<wbr>Token<wbr>Account<wbr>Balance</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildgettokensupply" class="tsd-kind-icon">build<wbr>Get<wbr>Token<wbr>Supply</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildjupswaptransaction" class="tsd-kind-icon">build<wbr>Jup<wbr>Swap<wbr>Transaction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buildsimulatetransaction" class="tsd-kind-icon">build<wbr>Simulate<wbr>Transaction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#closeallmangoandsettle" class="tsd-kind-icon">close<wbr>All<wbr>Mango<wbr>And<wbr>Settle</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#closeallpositionsandsellallassets" class="tsd-kind-icon">close<wbr>All<wbr>Positions<wbr>And<wbr>Sell<wbr>All<wbr>Assets</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#closepositionslinearly" class="tsd-kind-icon">close<wbr>Positions<wbr>Linearly</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createaccountinstruction" class="tsd-kind-icon">create<wbr>Account<wbr>Instruction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createassociatedtokenaccountifnotexist" class="tsd-kind-icon">create<wbr>Associated<wbr>Token<wbr>Account<wbr>IfNot<wbr>Exist</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createdefaultkeys" class="tsd-kind-icon">create<wbr>Default<wbr>Keys</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeaccountinforesponse" class="tsd-kind-icon">decode<wbr>Account<wbr>Info<wbr>Response</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodemultipleaccountsresponse" class="tsd-kind-icon">decode<wbr>Multiple<wbr>Accounts<wbr>Response</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeprogramaccountsresponse" class="tsd-kind-icon">decode<wbr>Program<wbr>Accounts<wbr>Response</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodetokenaccountbalanceresponse" class="tsd-kind-icon">decode<wbr>Token<wbr>Account<wbr>Balance<wbr>Response</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodetokensupplyresponse" class="tsd-kind-icon">decode<wbr>Token<wbr>Supply<wbr>Response</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#deposit" class="tsd-kind-icon">deposit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#dosomething" class="tsd-kind-icon">do<wbr>Something</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#fetchmangopositions" class="tsd-kind-icon">fetch<wbr>Mango<wbr>Positions</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#findassociatedtokenaddress" class="tsd-kind-icon">find<wbr>Associated<wbr>Token<wbr>Address</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#findprogramaddress" class="tsd-kind-icon">find<wbr>Program<wbr>Address</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdecimalsfrommint" class="tsd-kind-icon">get<wbr>Decimals<wbr>From<wbr>Mint</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getlocaladaptertokenindexhelper" class="tsd-kind-icon">get<wbr>Local<wbr>Adapter<wbr>Token<wbr>Index<wbr>Helper</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getmarginpdatokenindexhelper" class="tsd-kind-icon">get<wbr>MarginPDAToken<wbr>Index<wbr>Helper</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getmultipleaccounts" class="tsd-kind-icon">get<wbr>Multiple<wbr>Accounts</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getownedaccountsfilters" class="tsd-kind-icon">get<wbr>Owned<wbr>Accounts<wbr>Filters</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getownedtokenaccounts" class="tsd-kind-icon">get<wbr>Owned<wbr>Token<wbr>Accounts</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getsaberdata" class="tsd-kind-icon">get<wbr>Saber<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getsolendreservebyaddress" class="tsd-kind-icon">get<wbr>Solend<wbr>Reserve<wbr>ByAddress</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettokenaccountinfo" class="tsd-kind-icon">get<wbr>Token<wbr>Account<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettokenfrommintaddress" class="tsd-kind-icon">get<wbr>Token<wbr>From<wbr>Mint<wbr>Address</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettokenfromsymbol" class="tsd-kind-icon">get<wbr>Token<wbr>From<wbr>Symbol</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettradermarginpda" class="tsd-kind-icon">get<wbr>Trader<wbr>MarginPDA</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getunixts" class="tsd-kind-icon">get<wbr>Unix<wbr>Ts</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getxenonaccountdata" class="tsd-kind-icon">get<wbr>Xenon<wbr>Account<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getxenonpdatokenindexhelper" class="tsd-kind-icon">get<wbr>XenonPDAToken<wbr>Index<wbr>Helper</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleaddtokentomargin2" class="tsd-kind-icon">handle<wbr>Add<wbr>Token<wbr>ToMargin2</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleinitializemangoadapter" class="tsd-kind-icon">handle<wbr>Initialize<wbr>Mango<wbr>Adapter</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleinitializequarryadapter" class="tsd-kind-icon">handle<wbr>Initialize<wbr>Quarry<wbr>Adapter</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleinitializesaberadapter" class="tsd-kind-icon">handle<wbr>Initialize<wbr>Saber<wbr>Adapter</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleinitializesaberadapter2" class="tsd-kind-icon">handle<wbr>Initialize<wbr>Saber<wbr>Adapter2</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handleinitializesolendadapter2" class="tsd-kind-icon">handle<wbr>Initialize<wbr>Solend<wbr>Adapter2</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlemangodeposit" class="tsd-kind-icon">handle<wbr>Mango<wbr>Deposit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlemangoplacepreporder" class="tsd-kind-icon">handle<wbr>Mango<wbr>Place<wbr>Prep<wbr>Order</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlemangoprepcancelorder" class="tsd-kind-icon">handle<wbr>Mango<wbr>Prep<wbr>Cancel<wbr>Order</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlemangosettleall" class="tsd-kind-icon">handle<wbr>Mango<wbr>Settle<wbr>All</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlemangowithdraw" class="tsd-kind-icon">handle<wbr>Mango<wbr>Withdraw</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlequarryclaimrewards" class="tsd-kind-icon">handle<wbr>Quarry<wbr>Claim<wbr>Rewards</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlequarrydeposit" class="tsd-kind-icon">handle<wbr>Quarry<wbr>Deposit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlequarryinitmintsinmargin" class="tsd-kind-icon">handle<wbr>Quarry<wbr>Init<wbr>Mints<wbr>InMargin</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlequarrywithdraw" class="tsd-kind-icon">handle<wbr>Quarry<wbr>Withdraw</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlesaberdeposit" class="tsd-kind-icon">handle<wbr>Saber<wbr>Deposit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#handlesaberwithdraw" class="tsd-kind-icon">handle<wbr>Saber<wbr>Withdraw</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#initialisemarginaccount" class="tsd-kind-icon">initialise<wbr>Margin<wbr>Account</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#main" class="tsd-kind-icon">main</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#main2" class="tsd-kind-icon">main2</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#mapordertype" class="tsd-kind-icon">map<wbr>Order<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#parsetokenaccountdata" class="tsd-kind-icon">parse<wbr>Token<wbr>Account<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#publickeylayout" class="tsd-kind-icon">public<wbr>Key<wbr>Layout</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#repay" class="tsd-kind-icon">repay</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#sendrawtransaction" class="tsd-kind-icon">send<wbr>Raw<wbr>Transaction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#sendsignedtransactionandnotify" class="tsd-kind-icon">send<wbr>Signed<wbr>Transaction<wbr>And<wbr>Notify</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#sendtransactions" class="tsd-kind-icon">send<wbr>Transactions</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#signandsendmultipletransactions" class="tsd-kind-icon">sign<wbr>And<wbr>Send<wbr>Multiple<wbr>Transactions</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#sleep" class="tsd-kind-icon">sleep</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#solenddeposit" class="tsd-kind-icon">solend<wbr>Deposit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#solendwithdraw" class="tsd-kind-icon">solend<wbr>Withdraw</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#splittochunks" class="tsd-kind-icon">split<wbr>ToChunks</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#u128" class="tsd-kind-icon">u128</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#u64" class="tsd-kind-icon">u64</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#updateaccountvaluation" class="tsd-kind-icon">update<wbr>Account<wbr>Valuation</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#updateglobalpricecache" class="tsd-kind-icon">update<wbr>Global<wbr>Price<wbr>Cache</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#withdraw" class="tsd-kind-icon">withdraw</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#wrapsol" class="tsd-kind-icon">wrap<wbr>Sol</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#devnettokens" class="tsd-kind-icon">devnet<wbr>Tokens</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#devnet_reserves" class="tsd-kind-icon">devnet_<wbr>reserves</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#mainnettokens" class="tsd-kind-icon">mainnet<wbr>Tokens</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#mainnet_reserves" class="tsd-kind-icon">mainnet_<wbr>reserves</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
