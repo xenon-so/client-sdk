@@ -13,7 +13,7 @@ jobs:
       - name: setup git config
         run: |
           git config --global user.name 'supahottboi'
-          git config --global user.email 'supahottboi@gmail.com'
+          git config --global user.email 'supahotcutie@xenon.so'
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
