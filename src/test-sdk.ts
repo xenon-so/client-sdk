@@ -1,5 +1,5 @@
 import { Wallet } from '@project-serum/anchor';
-import { Connection, Keypair } from '@solana/web3.js';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { closeAllPositionsAndSellAllAssets } from './templates/liquidator';
 import { XenonLiquidatorClient } from './xenonLiquidatorClient';

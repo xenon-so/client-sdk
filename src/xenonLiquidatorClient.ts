@@ -193,19 +193,20 @@ export class XenonLiquidatorClient {
           quarryLPBalance
         );
         transactions.push(transaction);
+
+        let transaction2 = new Transaction();
+        await handleQuarryClaimRewards(
+          this.connection,
+          xenonPDA,
+          this.xenonPdaData,
+          marginAccount,
+          this.liquidator,
+          transaction2,
+          saberLpPool,
+          0
+        );
+        transactions.push(transaction2);
       }
-      let transaction2 = new Transaction();
-      await handleQuarryClaimRewards(
-        this.connection,
-        xenonPDA,
-        this.xenonPdaData,
-        marginAccount,
-        this.liquidator,
-        transaction2,
-        saberLpPool,
-        0
-      );
-      transactions.push(transaction2);
     }
 
     return transactions;
