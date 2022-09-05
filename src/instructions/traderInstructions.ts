@@ -45,7 +45,7 @@ import {
   createDefaultKeys,
   findAssociatedTokenAddress,
 } from '../utils/web3Utils';
-import BN, { min } from 'bn.js';
+import BN from 'bn.js';
 import {
   ADAPTER_ACCOUNT_LAYOUT,
   MANGO_ADAPTER_ACCOUNT_LAYOUT,
@@ -67,9 +67,8 @@ import {
   SOLEND_DERIEVED_MARKET,
   SOLEND_MARKET,
   SOLEND_RESERVE,
-  SOLEND_RESERVES,
 } from '../utils/solendMarkets';
-import { Saber_LP, SABER_LP_LIST } from '../utils/saberList';
+import { Saber_LP } from '../utils/saberList';
 import BigNumber from 'bignumber.js';
 import {
   getLocalAdapterTokenIndexHelper,
@@ -1155,7 +1154,6 @@ export const handleAddTokensToMargin = async (
   if (!marginInfo) throw new Error('No margin account found!');
 
   let marginData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
-  console.log('handleAddTokensToMargin marginData :: ', marginData)
   const dataLayout = struct([u8('instruction'), u8('index')]);
   let currentIndex = marginData.token_count;
   for (const mint of mints) {
@@ -1662,7 +1660,6 @@ export const handleInitializeSaberAdapter2 = async (
   const tokenData = await handleAddTokensToMargin(
     connection, xenonPDA, xenonPdaData, marginPDA, payer, saberLpNeededTokens.map(f => new PublicKey(f)), transaction);
 
-    console.log('tokenData ::: ', tokenData)
   let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
   if (!marginInfo) throw new Error('No margin account found!');
   let marginPdaData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
