@@ -1148,7 +1148,7 @@ export const handleAddTokensToMargin = async (
   transaction: Transaction
 ): Promise<AddTokenToMargin[]> => {
 
-  const someData: AddTokenToMargin[] = [];
+  const addTokensToMargin: AddTokenToMargin[] = [];
 
   let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
   if (!marginInfo) throw new Error('No margin account found!');
@@ -1168,7 +1168,7 @@ export const handleAddTokensToMargin = async (
     const marginAccountToken = marginData.tokens.find((f) => f.index === index);
 
     if (marginAccountToken && marginAccountToken.is_active) {
-      someData.push({
+      addTokensToMargin.push({
         addingTokenToMargin: false,
         index: marginData.tokens.findIndex((f) => f.index === index),
         mint,
@@ -1204,12 +1204,12 @@ export const handleAddTokensToMargin = async (
     });
 
     transaction.add(instruction);
-    someData.push({ addingTokenToMargin: true, index: currentIndex, mint });
+    addTokensToMargin.push({ addingTokenToMargin: true, index: currentIndex, mint });
     currentIndex++
   }
 
-  someData
-  return someData;
+  addTokensToMargin
+  return addTokensToMargin;
 };
 
 export const handleAddTokenToMargin2 = async (
@@ -1275,6 +1275,7 @@ export const handleAddTokenToMargin2 = async (
   return { addingTokenToMargin: true, index: marginData.token_count, mint };
 };
 
+// rewrite this 
 export const handleInitializeSolendAdapter2 = async (
   connection: Connection,
   xenonPDA: PublicKey,
@@ -1677,7 +1678,6 @@ export const handleInitializeSaberAdapter2 = async (
     'processed'
   );
   if (localAdapterPDADataInfo) {
-    console.log("step 2-a :: localAdapterAcc already exist so check and add")
 
     //  step 2-a :: localAdapterAcc already exist so check and add
     const localAdapterPDAData = ADAPTER_ACCOUNT_LAYOUT.decode(
@@ -1686,19 +1686,15 @@ export const handleInitializeSaberAdapter2 = async (
     //  current_last_margin_pda_index = 4
     for (const [i, mint] of saberLpNeededTokens.entries()) {
       //check if already token is initialised inside LocalAdpater
-      console.log('i', i,mint , getLocalAdapterTokenIndexHelper(new PublicKey(mint),localAdapterPDAData))
       if (
         getLocalAdapterTokenIndexHelper(
           new PublicKey(mint),
           localAdapterPDAData
         ) === -1
       ) {
-        console.log("inside if ==1")
         const token = tokenData.find(k => k.mint.toBase58() === mint);
         // already added
         if (token) {
-           console.log("inside !if tokensToBeInitCount,",tokensToBeInitCount)
-
           tokensToBeInitCount++;
           marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
         }
@@ -1712,11 +1708,9 @@ export const handleInitializeSaberAdapter2 = async (
       return;
     }
   } else {
-    console.log("step 2-b :: localAdapterAcc doesn't exist so Add all mint")
     //  step 2-b :: localAdapterAcc doesn't exist so Add all mints
     for (const [i, mint] of saberLpNeededTokens.entries()) {
       const token = tokenData.find(f => f.mint.toBase58() === mint);
-      console.log("2b token ",token)
       if (token) {
         marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
       }
