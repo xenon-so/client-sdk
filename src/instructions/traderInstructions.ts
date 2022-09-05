@@ -700,7 +700,6 @@ export const handleMangoDeposit = async (
     marginPDA,
     transaction
   );
-
   let nodeBankInfo = await connection.getAccountInfo(
     new PublicKey(ids.tokens[tokenIndex].nodeKeys[0])
   );
@@ -800,12 +799,9 @@ export const handleMangoWithdraw = async (
   let client = new MangoClient(connection, new PublicKey(ids.mangoProgramId));
   let mangoGroup = await client.getMangoGroup(new PublicKey(ids.publicKey));
 
-  const marginUSDCATA = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
-    new PublicKey(TOKENS.USDC.mintAddress),
+  const marginUSDCATA = await findAssociatedTokenAddress(
     marginPDA,
-    transaction
+    new PublicKey(TOKENS.USDC.mintAddress)
   );
 
   let nodeBankInfo = await connection.getAccountInfo(
@@ -1142,6 +1138,80 @@ interface AddTokenToMargin {
   mint: PublicKey;
 }
 
+export const handleAddTokensToMargin = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  xenonPdaData: any,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  mints: PublicKey[],
+  transaction: Transaction
+): Promise<AddTokenToMargin[]> => {
+
+  const addTokensToMargin: AddTokenToMargin[] = [];
+
+  let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
+  if (!marginInfo) throw new Error('No margin account found!');
+
+  let marginData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
+  const dataLayout = struct([u8('instruction'), u8('index')]);
+  let currentIndex = marginData.token_count;
+  for (const mint of mints) {
+    const index = xenonPdaData.token_list
+      .map((f) => f.mint.toBase58())
+      .findIndex((o) => o === mint.toBase58());
+
+    if (index === -1) {
+      throw new Error('Adding incorrect mint');
+    }
+
+    const marginAccountToken = marginData.tokens.find((f) => f.index === index);
+
+    if (marginAccountToken && marginAccountToken.is_active) {
+      addTokensToMargin.push({
+        addingTokenToMargin: false,
+        index: marginData.tokens.findIndex((f) => f.index === index),
+        mint,
+      });
+      continue;
+    }
+
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 16,
+        index: index,
+      },
+      data
+    );
+    const marginVaultAccount = await createAssociatedTokenAccountIfNotExist(
+      connection,
+      payer,
+      mint,
+      marginPDA,
+      transaction
+    );
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: xenonPDA, isSigner: false, isWritable: true },
+        { pubkey: marginPDA, isSigner: false, isWritable: true },
+        { pubkey: payer, isSigner: false, isWritable: true },
+        { pubkey: marginVaultAccount, isSigner: false, isWritable: false },
+      ],
+      programId,
+      data,
+    });
+
+    transaction.add(instruction);
+    addTokensToMargin.push({ addingTokenToMargin: true, index: currentIndex, mint });
+    currentIndex++
+  }
+
+  addTokensToMargin
+  return addTokensToMargin;
+};
+
 export const handleAddTokenToMargin2 = async (
   connection: Connection,
   xenonPDA: PublicKey,
@@ -1205,6 +1275,7 @@ export const handleAddTokenToMargin2 = async (
   return { addingTokenToMargin: true, index: marginData.token_count, mint };
 };
 
+// rewrite this 
 export const handleInitializeSolendAdapter2 = async (
   connection: Connection,
   xenonPDA: PublicKey,
@@ -1385,8 +1456,6 @@ export const solendDeposit = async (
     new PublicKey(solendReserve.collateralMintAddress)
   );
 
-  // const sourceLiquidityAcc = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(solendReserve.mint), marginPDA, transaction); // 8FRFC6MoGGkMFQwngccyu69VnYbzykGeez7ignHVAFSN
-  // const DestCollateralAcc = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(solendReserve.collateralMintAddress), marginPDA, transaction); // 3U4H4N47cG75NbmdTAZgrktpRPR7vYPbih9tqH4qGPqW
   const reserveLiqSupplyAcc = new PublicKey(solendReserve.liquidityAddress);
 
   const instruction = new TransactionInstruction({
@@ -1477,19 +1546,14 @@ export const solendWithdraw = async (
     data
   );
 
-  const sourceCollateralAcc = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
+  const sourceCollateralAcc = await findAssociatedTokenAddress(
+    marginPDA,
     new PublicKey(solendReserve.collateralMintAddress),
-    marginPDA,
-    transaction
   );
-  const DestLiquidityAcc = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
-    new PublicKey(solendReserve.mint),
+
+  const DestLiquidityAcc = await findAssociatedTokenAddress(
     marginPDA,
-    transaction
+    new PublicKey(solendReserve.mint)
   );
 
   const instruction = new TransactionInstruction({
@@ -1594,6 +1658,9 @@ export const handleInitializeSaberAdapter2 = async (
     saber_lp.lpToken.address,
   ];
 
+  const tokenData = await handleAddTokensToMargin(
+    connection, xenonPDA, xenonPdaData, marginPDA, payer, saberLpNeededTokens.map(f => new PublicKey(f)), transaction);
+
   let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
   if (!marginInfo) throw new Error('No margin account found!');
   let marginPdaData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
@@ -1611,35 +1678,28 @@ export const handleInitializeSaberAdapter2 = async (
     'processed'
   );
   if (localAdapterPDADataInfo) {
+
     //  step 2-a :: localAdapterAcc already exist so check and add
     const localAdapterPDAData = ADAPTER_ACCOUNT_LAYOUT.decode(
       localAdapterPDADataInfo?.data
     );
-
+    //  current_last_margin_pda_index = 4
     for (const [i, mint] of saberLpNeededTokens.entries()) {
-      //check if already token is initialised inside LocalAdpater]
+      //check if already token is initialised inside LocalAdpater
       if (
         getLocalAdapterTokenIndexHelper(
           new PublicKey(mint),
           localAdapterPDAData
         ) === -1
       ) {
-        const marginIndex = getMarginPDATokenIndexHelper(
-          new PublicKey(mint),
-          xenonPdaData,
-          marginPdaData
-        );
-        if (marginIndex === -1) {
-          // case 1 : doesnot exist on both margin and adapter
-          // get the about to be added index from marginUnInitializedTokensAndMints
-          throw new Error('Should already exist on margin account');
-        } else {
-          //case 2 : exist on margin but not on adapter
+        const token = tokenData.find(k => k.mint.toBase58() === mint);
+        // already added
+        if (token) {
           tokensToBeInitCount++;
-          marginAccTokenIndexToBeAdded.push({ mint: mint, index: marginIndex });
+          marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
         }
       } else {
-        //case 3 : exist on magin and adapter
+        //case 3 : exist on margin and adapter
         // no need to add
       }
     }
@@ -1650,18 +1710,15 @@ export const handleInitializeSaberAdapter2 = async (
   } else {
     //  step 2-b :: localAdapterAcc doesn't exist so Add all mints
     for (const [i, mint] of saberLpNeededTokens.entries()) {
-      const marginIndex = getMarginPDATokenIndexHelper(
-        new PublicKey(mint),
-        xenonPdaData,
-        marginPdaData
-      );
-      if (marginIndex === -1) {
-        throw new Error('Should already exist on margin account');
-      } else {
-        //case 2 : exist on margin
-        marginAccTokenIndexToBeAdded.push({ mint: mint, index: marginIndex });
+      const token = tokenData.find(f => f.mint.toBase58() === mint);
+      if (token) {
+        marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
       }
     }
+  }
+
+  if(marginAccTokenIndexToBeAdded.length === 0) {
+    return;
   }
 
   let obj = {};
@@ -2066,12 +2123,9 @@ export const handleInitializeQuarryAdapter = async (
     [Buffer.from('Miner'), quarryAccount.toBuffer(), marginPDA.toBuffer()],
     quarryProgramId
   );
-  const minerVault = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
-    new PublicKey(saber_lp.lpToken.address),
+  const minerVault = await findAssociatedTokenAddress(
     minerAccount[0],
-    transaction
+    new PublicKey(saber_lp.lpToken.address)
   );
 
   const dataLayout = struct([
@@ -2169,12 +2223,9 @@ export const handleQuarryDeposit = async (
     new PublicKey(saber_lp.lpToken.address)
   );
 
-  const lpTokenAccount = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
-    new PublicKey(saber_lp.lpToken.address),
+  const lpTokenAccount = await findAssociatedTokenAddress(
     marginPDA,
-    transaction
+    new PublicKey(saber_lp.lpToken.address)
   );
 
   const dataLayout = struct([
@@ -2236,6 +2287,16 @@ export const handleQuarryWithdraw = async (
   saber_lp: Saber_LP,
   lpAmount: number
 ) => {
+  await handleInitializeQuarryAdapter(
+    connection,
+    xenonPDA,
+    xenonPdaData,
+    marginPDA,
+    payer,
+    transaction,
+    saber_lp
+  );
+
   const adapterPDA = await PublicKey.findProgramAddress(
     [marginPDA.toBuffer()],
     quarryAdapterProgramId
@@ -2261,12 +2322,9 @@ export const handleQuarryWithdraw = async (
     transaction
   );
 
-  const lpTokenAccount = await createAssociatedTokenAccountIfNotExist(
-    connection,
-    payer,
-    new PublicKey(saber_lp.lpToken.address),
+  const lpTokenAccount = await findAssociatedTokenAddress(
     marginPDA,
-    transaction
+    new PublicKey(saber_lp.lpToken.address)
   );
 
   const dataLayout = struct([
@@ -2345,7 +2403,6 @@ export const handleQuarryClaimRewards = async (
     quarryProgramId
   );
 
-  // const rewardMint = new PublicKey('iouQcQBAiEXe6cKLS85zmZxUqaCqBdeHFpqKoSz615u')
   const rewardTokenAccount = await createAssociatedTokenAccountIfNotExist(
     connection,
     payer,
