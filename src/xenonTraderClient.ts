@@ -3,8 +3,11 @@ import {
   Payer,
   PerpOrderType,
 } from '@blockworks-foundation/mango-client';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
-import { mangoAdapterProgramId, mangoProgramID, xenonPDA } from './constants';
+import { buildWhirlpoolClient, ORCA_WHIRLPOOL_PROGRAM_ID, WhirlpoolClient, WhirlpoolContext } from '@orca-so/whirlpools-sdk';
+import { Wallet } from '@project-serum/anchor';
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import { BN } from 'bn.js';
+import { mangoAdapterProgramId, mangoProgramID, orcaProgramId, xenonPDA } from './constants';
 import * as commonInstructions from './instructions/commonInstructions';
 import * as traderInstructions from './instructions/traderInstructions';
 import {
@@ -14,6 +17,7 @@ import {
 import { getTraderMarginPDA } from './utils/accounts/getMarginPDA';
 import { getXenonAccountData } from './utils/accounts/getXenonAccountData';
 import { getXenonPDATokenIndexHelper } from './utils/getTokenIndexes';
+import { OrcaWhirlpool } from './utils/OrcaPools';
 import { Saber_LP } from './utils/saberList';
 import { SOLEND_RESERVE } from './utils/solendMarkets';
 import { wrapSol } from './utils/web3Utils';
@@ -26,6 +30,7 @@ export class XenonTraderClient {
   // marginPdaData? : any;
   marginPDA?: PublicKey;
   mangoClient: MangoClient;
+  WhirlpoolClient : WhirlpoolClient;
 
   mangoAdaptor?: PublicKey;
   mangoAdaptorData?: any;
@@ -66,6 +71,18 @@ export class XenonTraderClient {
     this.mangoAdaptorData = data;
     this.mangoCheckAccountData = checkAccountData;
     this.mangoAccount = new PublicKey(checkAccountData.mango_account);
+  }
+
+  async loadWhirlpoolClient(connection: Connection){
+    // const Wallet = new Wallet(Keypair.generate())
+     const Wallet :any = {
+      // signTransaction : new Promise(new Transaction()),
+      // signAllTransactions : [],
+      publicKey: this.trader
+    } 
+    const ctx = WhirlpoolContext.from(connection, Wallet, ORCA_WHIRLPOOL_PROGRAM_ID);
+    const client = buildWhirlpoolClient(ctx);
+    this.WhirlpoolClient = client;
   }
 
   async getXenonPDATokenIndex(mint: PublicKey) {
@@ -175,6 +192,7 @@ export class XenonTraderClient {
     );
   }
 
+  // Mango specific methods ===================
   async initializeMangoAdaptor(transaction: Transaction) {
     return traderInstructions.handleInitializeMangoAdapter(
       this.connection,
@@ -270,6 +288,7 @@ export class XenonTraderClient {
     );
   }
 
+  // Solend specific methods ===================
   async solendDeposit(
     transaction: Transaction,
     amount: number,
@@ -304,6 +323,7 @@ export class XenonTraderClient {
     );
   }
 
+  // Saber specific methods ===================
   async saberInitialize(transaction: Transaction, saberLp: Saber_LP) {
     return traderInstructions.handleInitializeSaberAdapter(
       this.connection,
@@ -352,6 +372,7 @@ export class XenonTraderClient {
     );
   }
 
+  // Quarry specific methods ===================
   async quarryInitMintsInMargin(transaction: Transaction, saberLp: Saber_LP) {
     return traderInstructions.handleQuarryInitMintsInMargin(
       this.connection,
@@ -415,6 +436,109 @@ export class XenonTraderClient {
     );
   }
 
+  // Orca specific methods ===================
+  async initializeOrcaAdaptor(transaction: Transaction, OrcaWhirlpool : OrcaWhirlpool) {
+    return traderInstructions.handleInitializeOrcaAdapter(
+      this.connection,
+      this.xenonPDA!,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      OrcaWhirlpool,
+    );
+  }
+
+  async orcaDeposit(
+    transaction: Transaction,
+    OrcaWhirlpool: OrcaWhirlpool,
+    tickLowerIndex: number,
+    tickUpperIndex: number,
+    maxTokenAAmount: number,
+    maxTokenBAmount: number
+  ) {
+    const positionMint : PublicKey = await traderInstructions.handleOrcaOpenPosition(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      OrcaWhirlpool,
+      tickLowerIndex,
+      tickUpperIndex
+    );
+    return traderInstructions.handleOrcaIncreaseLiquidity(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+      maxTokenAAmount,
+      maxTokenBAmount
+    );
+
+  }
+
+  async orcaWithdraw(
+    transaction: Transaction,
+    OrcaWhirlpool: OrcaWhirlpool,
+    positionMint: PublicKey,
+    withdrawFull=true, // Withdraw Full amount by default
+    liquidityAmountBN=(new BN(0)),
+    tokenMinA=0,
+    tokenMinB=0,
+  ) {
+
+    await traderInstructions.handleOrcaUpdateFeesAndReward(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    );
+    await traderInstructions.handleOrcaCollectFees(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    )
+   await traderInstructions.handleOrcaCollectRewards(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    )
+    return traderInstructions.handleOrcaDecreaseLiquidity(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+      withdrawFull,
+      liquidityAmountBN,
+      tokenMinA,
+      tokenMinB,
+    )
+  }
+
+  // Global methods
   async updateGlobalPrices(transaction: Transaction) {
     return commonInstructions.updateGlobalPriceCache(
       this.connection,

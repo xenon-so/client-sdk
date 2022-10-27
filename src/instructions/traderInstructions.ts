@@ -9,6 +9,8 @@ import {
   SYSVAR_INSTRUCTIONS_PUBKEY,
   Transaction,
   TransactionInstruction,
+  Keypair,
+  SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
 import {
   mangoProgramID,
@@ -35,10 +37,14 @@ import {
   mangoCache,
   SERUM_PROGRAM_ID_V3,
   QUARRY_REWARD_MINT,
+  orcaGAdapterPk,
+  orcaAdapterProgramId,
+  orcaProgramId,
+  METAPLEX_TOKEN_METADATA,
 } from '../constants';
 import { getDecimalsFromMint, TOKENS } from '../utils/tokens';
 import { struct, u8, nu64, u32, u32be } from 'buffer-layout';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   createAccountInstruction,
   createAssociatedTokenAccountIfNotExist,
@@ -48,10 +54,12 @@ import {
 import BN from 'bn.js';
 import {
   ADAPTER_ACCOUNT_LAYOUT,
+  i32,
   MANGO_ADAPTER_ACCOUNT_LAYOUT,
   MARGIN_DATA_LAYOUT,
   QUARRY_CHECK_DATA,
   SABER_ADAPTER_ACCOUNT,
+  u128,
   XENON_DATA_LAYOUT,
 } from '../layout/xenonLayout';
 import { PERP_MARKETS } from '../utils/perpMarkets';
@@ -76,6 +84,9 @@ import {
   getXenonPDATokenIndexHelper,
 } from '../utils/getTokenIndexes';
 import { isMainnet } from '../isMainnet';
+import { OrcaWhirlpool } from '../utils/OrcaPools';
+import {buildWhirlpoolClient, MAX_TICK_INDEX, MIN_TICK_INDEX, PDAUtil, PoolUtil, PriceMath, TickUtil, toTokenAmount, WhirlpoolClient, WhirlpoolContext} from '@orca-so/whirlpools-sdk';
+import { Wallet } from '@project-serum/anchor';
 
 const idsIndex = 0; //0 for maninnet, 2 for devnet
 const ids = IDS['groups'][idsIndex];
@@ -2462,3 +2473,836 @@ export const handleQuarryClaimRewards = async (
   });
   transaction.add(instruction);
 };
+
+// All Orca Methods====
+
+// Simple INSTRUCTION: Initialize DOESNOT HANDLE Tokens to be added to margin - BREAK THE TRXS IF USING THIS 
+// NOTE : should handle adding to margin token to Margin Acc & Adapter if not exist 
+export const handleInitializeOrcaAdapter = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  xenonPdaData : any,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  OrcaWhirlpool: OrcaWhirlpool
+)=> {
+  
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
+
+  console.log("marginPDA :", marginPDA);
+  console.log("adapterPDA:", adapterPDA);
+
+  //  check mints to be added in margin 3 mints 
+  // margin accc token A and B ( 1,2)   
+  let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
+  if (!marginInfo) throw new Error('No margin account found!');
+  let marginData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
+
+  const tokensToCheck = [OrcaWhirlpool.tokenMintA, OrcaWhirlpool.tokenMintB];
+  let marginTokenIndexsToBeAdded = []
+  for(let i=0;i<2;i++){
+      const index = getXenonPDATokenIndexHelper(
+        xenonPdaData,
+        new PublicKey(tokensToCheck[i])
+      );
+      if (index === -1) {
+        throw new Error('Adding incorrect mint Not Found on XenonPDA');
+      }
+    
+      // const marginAccountTokenIndex = marginData.tokens.findIndex(f => f.index === index);
+      const marginAccountTokenIndex = getMarginPDATokenIndexHelper(
+        new PublicKey(tokensToCheck[i]),
+        xenonPdaData,
+        marginData
+      );
+    
+      if (marginAccountTokenIndex === -1) {
+        throw new Error('token not found in margin');
+      }
+      marginTokenIndexsToBeAdded.push(marginAccountTokenIndex);
+  }
+
+    // const dataLayout = struct([u8('instruction'), u8('adapter_index'), u8('count'), u8('token_index_1'), u8('token_index_2')])
+    let obj = {};
+      const layoutArr: any = [u8('instruction'), u8('adapter_index'), u8('count')];
+
+      for (let i = 0; i < marginTokenIndexsToBeAdded.length; i++) {
+        layoutArr.push(u8(`token__index_${i}`));
+        obj[`token__index_${i}`] = marginTokenIndexsToBeAdded[i].index;
+      }
+      const dataLayout = struct(layoutArr);
+
+      const data = Buffer.alloc(dataLayout.span);
+      const someLayout = {
+            instruction: 12,
+            adapter_index: 4,
+            count: marginTokenIndexsToBeAdded.length,
+        ...obj,
+      };
+      console.log("layout:",someLayout);
+      dataLayout.encode(someLayout,data)
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: xenonPDA, isSigner: false, isWritable: false },
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: marginPDA, isSigner: false, isWritable: true },
+        { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: checkPDA[0], isSigner: false, isWritable: true },
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
+       
+      ],
+      programId, //programId,
+      data
+    });
+
+    transaction.add(instruction)
+};
+
+// COMPLEX INSTRUCTION: Initialize HANDLES Tokens to be added to margin - Does Everything in same Trx
+export const handleInitializeOrcaAdapter2 = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  xenonPdaData : any,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  OrcaWhirlpool: OrcaWhirlpool
+)=> {
+  
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
+
+  console.log("marginPDA :", marginPDA);
+  console.log("adapterPDA:", adapterPDA);
+
+  //  steps0 ::  find all tokens needed
+  const tokensToCheck = [OrcaWhirlpool.tokenMintA, OrcaWhirlpool.tokenMintB];
+
+  const tokenData = await handleAddTokensToMargin(
+    connection, xenonPDA, xenonPdaData, marginPDA, payer, tokensToCheck.map(f => new PublicKey(f)), transaction);
+
+  // let marginInfo = await connection.getAccountInfo(marginPDA, 'processed');
+  // if (!marginInfo) throw new Error('No margin account found!');
+  // let marginPdaData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
+  
+  const marginAccTokenIndexToBeAdded: any = [];
+  let tokensToBeInitCount = 0;
+
+  const localAdapterPDA = await PublicKey.findProgramAddress(
+    [marginPDA.toBuffer()],
+    orcaAdapterProgramId
+  );
+  const localAdapterPDADataInfo = await connection.getAccountInfo(
+    localAdapterPDA[0],
+    'processed'
+  );
+  if (localAdapterPDADataInfo) {
+
+    //  step 2-a :: localAdapterAcc already exist so check and add
+    const localAdapterPDAData = ADAPTER_ACCOUNT_LAYOUT.decode(
+      localAdapterPDADataInfo?.data
+    );
+    //  current_last_margin_pda_index = 4
+    for (const [i, mint] of tokensToCheck.entries()) {
+      //check if already token is initialised inside LocalAdpater
+      if (
+        getLocalAdapterTokenIndexHelper(
+          new PublicKey(mint),
+          localAdapterPDAData
+        ) === -1
+      ) {
+        const token = tokenData.find(k => k.mint.toBase58() === mint);
+        // already added
+        if (token) {
+          tokensToBeInitCount++;
+          marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
+        }
+      } else {
+        //case 3 : exist on margin and adapter
+        // no need to add
+      }
+    }
+
+    if (tokensToBeInitCount === 0) {
+      return;
+    }
+  } else {
+    //  step 2-b :: localAdapterAcc doesn't exist so Add all mints
+    for (const [i, mint] of tokensToCheck.entries()) {
+      const token = tokenData.find(f => f.mint.toBase58() === mint);
+      if (token) {
+        marginAccTokenIndexToBeAdded.push({ mint: mint, index: token.index });
+      }
+    }
+  }
+
+  if(marginAccTokenIndexToBeAdded.length === 0) {
+    console.log(" NO need to Initialize Orca Adapter")
+    return; // NO need to Initialize Account
+  }
+
+  let obj = {};
+  const layoutArr: any = [u8('instruction'), u8('adapter_index'), u8('count')];
+
+  for (let i = 0; i < marginAccTokenIndexToBeAdded.length; i++) {
+    layoutArr.push(u8(`token_index_${i}`));
+    obj[`token_index_${i}`] = marginAccTokenIndexToBeAdded[i].index;
+  }
+  const dataLayout = struct(layoutArr);
+
+  const data = Buffer.alloc(dataLayout.span);
+  const someLayout = {
+    instruction: 12,
+    adapter_index: 4,
+    count: marginAccTokenIndexToBeAdded.length,
+    ...obj,
+  };
+
+  dataLayout.encode(someLayout, data);
+ 
+    // const dataLayout = struct([u8('instruction'), u8('adapter_index'), u8('count'), u8('token_index_1'), u8('token_index_2')])
+    // const data = Buffer.alloc(dataLayout.span)
+    // dataLayout.encode(
+    //   {
+    //     instruction: 12,
+    //     adapter_index: 4,
+    //     count: 2,
+    //     token_index_1: 2, // index of main marginPDA
+    //     token_index_2: 3
+    //   },
+    // data
+    // )
+    
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: xenonPDA, isSigner: false, isWritable: false },
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: marginPDA, isSigner: false, isWritable: true },
+        { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: checkPDA[0], isSigner: false, isWritable: true },
+        { pubkey: payer, isSigner: true, isWritable: true },
+        { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
+       
+      ],
+      programId, //programId,
+      data
+    });
+
+    transaction.add(instruction)
+};
+
+// NOTE : should be called before handleOrcaIncreaseLiquidity
+// ASSUMING all the margin tokens are Initialized
+export const handleOrcaOpenPosition = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  OrcaWhirlpool: OrcaWhirlpool,
+  tickLowerIndex: number,
+  tickUpperIndex: number
+): Promise<PublicKey>  => {
+
+  //save positionMint
+  console.log("handle Orca Open Position clicked")
+  let signers = []
+  const positionMintNew = Keypair.generate();
+  console.log("positionMintNew::", positionMintNew.publicKey.toBase58());
+  signers.push(positionMintNew)
+
+  const positionPda = PDAUtil.getPosition(orcaProgramId, positionMintNew.publicKey);
+  console.log("positionPDA:", positionPda.publicKey.toBase58());
+  const positionMetadataPda = PDAUtil.getPositionMetadata(positionMintNew.publicKey);
+  console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
+  const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    positionMintNew.publicKey,
+    marginPDA,
+    true
+  );
+
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
+  console.log("checkPDA:", checkPDA);
+
+  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'),  u32be('instruction2'), u8('position_bump'), u8('metadata_bump'), i32('tick_lower_index'), i32('tick_upper_index')])
+
+  const data = Buffer.alloc(dataLayout.span)
+  dataLayout.encode(
+    {
+      instruction: 10,
+      adapter_index: 4,
+      instruction1: new BN('0xf21d8630'),
+      instruction2: new BN('0x3a6e0e3c'),
+      position_bump:  positionPda.bump,
+      metadata_bump:  positionMetadataPda.bump,
+      tick_lower_index: tickLowerIndex,
+      tick_upper_index: tickUpperIndex
+    },
+  data
+  )
+
+  const instruction = new TransactionInstruction({
+    keys: [
+      { pubkey: xenonPDA, isSigner: false, isWritable: true },
+      { pubkey: payer, isSigner: true, isWritable: false },
+      { pubkey: marginPDA, isSigner: false, isWritable: true },
+      { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+      { pubkey: payer, isSigner: true, isWritable: true }, //funder
+      { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+      { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: payer, isSigner: true, isWritable: true }, //funder
+      { pubkey: marginPDA, isSigner: false, isWritable: true }, //owner - marginPDA
+
+      { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+      { pubkey: positionMintNew.publicKey, isSigner: false, isWritable: true }, //position mint
+      { pubkey: positionMetadataPda.publicKey, isSigner: false, isWritable: true }, //position metadata
+      { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+      { pubkey: new PublicKey(OrcaWhirlpool.address), isSigner: false, isWritable: true }, //whirlpool
+
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: METAPLEX_TOKEN_METADATA, isSigner: false, isWritable: false },
+      { pubkey: new PublicKey('3axbTs2z5GBy6usVbNVoqEgZMng3vZvMnAoX29BFfwhr'), isSigner: false, isWritable: true }, //metadata update auth : TODO ??
+    ],
+    programId,
+    data
+  });
+
+  transaction.add(instruction);
+  return positionMintNew.publicKey;
+};
+
+// NOTE : should be called after handleOrcaOpenPosition
+//  ASSUMING all the margin tokens are Initialized
+export const handleOrcaIncreaseLiquidity = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+  maxTokenAAmount : number,
+  maxTokenBAmount : number,
+) => { 
+  console.log("handle Orca Increase Liquidity clicked")
+
+  const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
+  const poolData = pool.getData();
+  const token_a_vault = poolData.tokenVaultA;
+  const token_b_vault = poolData.tokenVaultB;
+  
+  const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+  console.log("positionPDA:", positionPda);
+  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
+  console.log("positionTokenAccountAddress:", positionTokenAccountAddress);
+
+  const position = await WhirlpoolClient.getPosition(positionPda.publicKey);
+  const positionData = position.getData()
+    
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
+
+  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
+  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+  console.log("token_a_user: ", token_a_user.toBase58())
+  console.log("token_b_user: ", token_b_user.toBase58())
+ 
+ 
+  const tickSpacing = poolData.tickSpacing; //todo: get it from pool_data.tickSpacing
+  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(positionData.tickLowerIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
+  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(positionData.tickUpperIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
+
+  console.log("tick_array_lower:", tick_array_lower);
+  console.log("tick_array_upper:", tick_array_upper);
+
+  // estimateLiquidityFromTokenAmounts
+  const currTick = poolData.tickCurrentIndex;
+  const tickLowerIndex =  positionData.tickLowerIndex;
+  const tickUpperIndex = positionData.tickUpperIndex;
+  const tokenAmount = toTokenAmount(maxTokenAAmount, maxTokenBAmount);
+
+  const liquidityAmount = PoolUtil.estimateLiquidityFromTokenAmounts(
+    currTick,
+    tickLowerIndex,
+    tickUpperIndex,
+    tokenAmount
+  );
+  console.log("liquidityAmount ::",liquidityAmount.toString())
+
+  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2'), u128('liquidity_amount'), nu64('token_max_a'), nu64('token_max_b')])
+
+  const data = Buffer.alloc(dataLayout.span)
+  dataLayout.encode(
+    {
+      instruction: 10,
+      adapter_index: 4,
+      instruction1: new BN('0x2e9cf376'),
+      instruction2: new BN('0x0dcdfbb2'),
+      liquidity_amount: liquidityAmount,
+      token_max_a: maxTokenAAmount ,
+      token_max_b: maxTokenBAmount
+    },
+  data
+  )
+
+  const instruction = new TransactionInstruction({
+    keys: [
+      { pubkey: xenonPDA, isSigner: false, isWritable: true },
+      { pubkey: payer, isSigner: true, isWritable: false },
+      { pubkey: marginPDA, isSigner: false, isWritable: true },
+      { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+      { pubkey: payer, isSigner: true, isWritable: true }, //funder
+      { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+      { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: new PublicKey(OrcaWhirlpool.address), isSigner: false, isWritable: true }, //whirlpool
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+      { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+      { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+
+      { pubkey: token_a_user, isSigner: false, isWritable: true }, //token_a_user
+      { pubkey: token_b_user, isSigner: false, isWritable: true }, //token_b_user
+      { pubkey: token_a_vault, isSigner: false, isWritable: true }, //token_a_vault
+      { pubkey: token_b_vault, isSigner: false, isWritable: true }, //token_b_vault
+      
+      { pubkey: tick_array_lower.publicKey, isSigner: false, isWritable: true }, //tick_array_lower
+      { pubkey: tick_array_upper.publicKey, isSigner: false, isWritable: true }, //tick_array_upper
+      
+    ],
+    programId,
+    data
+  });
+
+  transaction.add(instruction)
+
+};
+
+// Orca Withdarw Flow -------------
+
+export const handleOrcaUpdateFeesAndReward =  async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+) => { 
+  console.log("handle Orca update clicked")
+
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
+
+  const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+  console.log("positionPDA:", positionPda.publicKey.toBase58());
+  const positionMetadataPda = PDAUtil.getPositionMetadata(positionMint);
+  console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
+
+  const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
+  const poolData = pool.getData();
+
+  const position = await WhirlpoolClient.getPosition(positionPda.publicKey);
+  const positionData = position.getData()
+
+  const tickSpacing = poolData.tickSpacing; //todo: get it from pool_data.tickSpacing
+
+  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(positionData.tickLowerIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
+  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(positionData.tickUpperIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
+
+  console.log("tick_array_lower:", tick_array_lower);
+
+  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2')])
+
+  const data = Buffer.alloc(dataLayout.span)
+  dataLayout.encode(
+    {
+      instruction: 10,
+      adapter_index: 4,
+      instruction1: new BN('0x9ae6fa0d'),
+      instruction2: new BN('0xecd14bdf'),
+    },
+  data
+  )
+
+  const instruction = new TransactionInstruction({
+    keys: [
+      { pubkey: xenonPDA, isSigner: false, isWritable: true },
+      { pubkey: payer, isSigner: true, isWritable: false },
+      { pubkey: marginPDA, isSigner: false, isWritable: true },
+      { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+      { pubkey: payer, isSigner: true, isWritable: true }, //funder
+      { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+      { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+
+      { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: new PublicKey(OrcaWhirlpool.address), isSigner: false, isWritable: true }, //whirlpool
+      { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+      
+      { pubkey: tick_array_lower.publicKey, isSigner: false, isWritable: true }, //tick_array_lower
+      { pubkey: tick_array_upper.publicKey, isSigner: false, isWritable: true }, //tick_array_upper
+    ],
+    programId,
+    data
+  });
+
+  transaction.add(instruction)
+
+}
+
+export const handleOrcaCollectFees = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+) => { 
+  console.log("handle Orca collect fees clicked")
+
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
+
+  const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
+
+  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
+  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+
+  const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
+  const poolData = pool.getData();
+  const token_a_vault = poolData.tokenVaultA;
+  const token_b_vault = poolData.tokenVaultB;
+
+  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2')])
+
+  const data = Buffer.alloc(dataLayout.span)
+  dataLayout.encode(
+    {
+      instruction: 10,
+      adapter_index: 4,
+      instruction1: 0xa498cf63,
+      instruction2: 0x1eba13b6,
+    },
+  data
+  )
+
+  const instruction = new TransactionInstruction({
+    keys: [
+      { pubkey: xenonPDA, isSigner: false, isWritable: true },
+      { pubkey: payer, isSigner: true, isWritable: false },
+      { pubkey: marginPDA, isSigner: false, isWritable: true },
+      { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+      { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+      { pubkey: payer, isSigner: true, isWritable: true }, //funder
+      { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+      { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+      { pubkey: new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), isSigner: false, isWritable: true }, //whirlpool
+      { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+      { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+      { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+
+      { pubkey: token_a_user, isSigner: false, isWritable: true }, //token_a_user
+      { pubkey: token_a_vault, isSigner: false, isWritable: true }, //token_a_vault
+      { pubkey: token_b_user, isSigner: false, isWritable: true }, //token_b_user
+      { pubkey: token_b_vault, isSigner: false, isWritable: true }, //token_b_vault
+      
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    programId,
+    data
+  });
+
+  transaction.add(instruction)
+
+ 
+}
+
+//  Should be called multiple times for multiple rewards 
+export const handleOrcaCollectRewards = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+) => { 
+  console.log("handle Orca collect rewards clicked")
+
+  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
+
+  const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
+  console.log("positionTokn:",  positionTokenAccountAddress)
+
+  const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
+  const poolData = pool.getData();
+  const rewardInfos = poolData.rewardInfos;
+
+  // rewards will be directly send to marginAccounts owner wallet - so no need to check if exist on margin 
+  for(let i=0;i<rewardInfos.length;i++){
+      const reward_owner = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(rewardInfos[i].mint), payer, transaction);// users ATA
+      const reward_vault = new PublicKey(rewardInfos[i].vault);
+      console.log("reward_owner:", reward_owner.toBase58())
+      console.log("rewrd_vault:", reward_vault.toBase58());
+
+      const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2'), u8('reward_index')])
+
+      const data = Buffer.alloc(dataLayout.span)
+      dataLayout.encode(
+        {
+          instruction: 10,
+          adapter_index: 4,
+          instruction1: 0x46058457,
+          instruction2: 0x56ebb122,
+          reward_index: i
+        },
+      data
+      )
+
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: xenonPDA, isSigner: false, isWritable: true },
+          { pubkey: payer, isSigner: true, isWritable: false },
+          { pubkey: marginPDA, isSigner: false, isWritable: true },
+          { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+          { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+          { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+          { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+          { pubkey: payer, isSigner: true, isWritable: true }, //funder
+          { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+          { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+          { pubkey: new PublicKey(OrcaWhirlpool.address), isSigner: false, isWritable: true }, //whirlpool
+          { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+          { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+          { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+
+          { pubkey: reward_owner, isSigner: false, isWritable: true }, //token_a_user
+          { pubkey: reward_vault, isSigner: false, isWritable: true }, //token_a_vault
+          
+          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        ],
+        programId,
+        data
+      });
+
+      transaction.add(instruction)
+  }
+}
+
+export const handleOrcaDecreaseLiquidity = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+  withdrawFull=true,
+  liquidityAmountBN=(new BN(0)),
+  tokenMinA=0,
+  tokenMinB=0,
+) => { 
+    console.log("handle Orca decrease Liquidity clicked")
+
+    const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+    const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction)
+
+    const position = await WhirlpoolClient.getPosition(positionPda.publicKey);
+    const positionData = position.getData()
+
+    const liquidity_amount = positionData.liquidity;
+    console.log("SOL USDC positionData:",liquidity_amount.toString())
+
+    const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+    const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+    const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
+
+    const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
+    const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+    console.log("token_a_user: ", token_a_user.toBase58())
+    console.log("token_b_user: ", token_b_user.toBase58())
+
+    const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
+    const poolData = pool.getData();
+    const token_a_vault = poolData.tokenVaultA;
+    const token_b_vault = poolData.tokenVaultB;
+
+    const tickSpacing = 64; //todo: get it from pool_data.tickSpacing
+
+    const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(positionData.tickLowerIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
+    const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(positionData.tickUpperIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
+
+    const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2'), u128('liqiuidity_amount'), nu64('token_min_a'), nu64('token_min_b')])
+
+    const data = Buffer.alloc(dataLayout.span)
+    dataLayout.encode(
+      {
+        instruction: 10,
+        adapter_index: 4,
+        instruction1: 0xa026d06f,
+        instruction2: 0x685b2c01,
+        liqiuidity_amount: withdrawFull ? liquidity_amount : liquidityAmountBN, //withdrawing 100%
+        token_min_a: tokenMinA,
+        token_min_b: tokenMinB,
+      },
+    data
+    )
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: xenonPDA, isSigner: false, isWritable: true },
+        { pubkey: payer, isSigner: true, isWritable: false },
+        { pubkey: marginPDA, isSigner: false, isWritable: true },
+        { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+        { pubkey: payer, isSigner: true, isWritable: true }, //funder
+        { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+        { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: new PublicKey(OrcaWhirlpool.address), isSigner: false, isWritable: true }, //whirlpool
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+        { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+        { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+
+        { pubkey: token_a_user, isSigner: false, isWritable: true }, //token_a_user
+        { pubkey: token_b_user, isSigner: false, isWritable: true }, //token_b_user
+        { pubkey: token_a_vault, isSigner: false, isWritable: true }, //token_a_vault
+        { pubkey: token_b_vault, isSigner: false, isWritable: true }, //token_b_vault
+        
+        { pubkey: tick_array_lower.publicKey, isSigner: false, isWritable: true }, //tick_array_lower
+        { pubkey: tick_array_upper.publicKey, isSigner: false, isWritable: true }, //tick_array_upper
+        
+      ],
+      programId,
+      data
+    });
+
+    transaction.add(instruction)
+
+}
+
+export const handleOrcaClosePosition = async (
+  connection: Connection,
+  xenonPDA: PublicKey,
+  marginPDA: PublicKey,
+  payer: PublicKey,
+  transaction: Transaction,
+  WhirlpoolClient : WhirlpoolClient,
+  OrcaWhirlpool: OrcaWhirlpool,
+  positionMint: PublicKey,
+) => { 
+    console.log("handle Orca close position clicked")
+
+    const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+    const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
+    const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
+
+    const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
+    const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
+
+    const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2')])
+
+    const data = Buffer.alloc(dataLayout.span)
+    dataLayout.encode(
+      {
+        instruction: 10,
+        adapter_index: 4,
+        instruction1: 0x7b865100,
+        instruction2: 0x31446262,
+      },
+    data
+    )
+
+    const instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: xenonPDA, isSigner: false, isWritable: true },
+        { pubkey: payer, isSigner: true, isWritable: false },
+        { pubkey: marginPDA, isSigner: false, isWritable: true },
+        { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: checkPDA[0], isSigner: false, isWritable: true }, //check_acc
+        { pubkey: payer, isSigner: true, isWritable: true }, //funder
+        { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
+
+        { pubkey: orcaProgramId, isSigner: false, isWritable: false },
+
+        { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+        { pubkey: marginPDA, isSigner: false, isWritable: true }, //receiver - marginPDA
+        { pubkey: positionPda.publicKey, isSigner: false, isWritable: true }, //position
+        { pubkey: positionMint, isSigner: false, isWritable: true }, //position mint
+        { pubkey: positionTokenAccountAddress, isSigner: false, isWritable: true }, //position token account
+
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      programId,
+      data
+    });
+
+    transaction.add(instruction)
+
+}

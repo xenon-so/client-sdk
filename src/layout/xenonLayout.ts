@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Blob, seq, struct, u32, u8, u16, nu64, ns64 } from 'buffer-layout';
+import { Blob, seq, struct, u32, u8, u16, nu64, ns64 ,i32 } from 'buffer-layout';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 
@@ -86,8 +86,43 @@ export function u128(property = '') {
 export function U128U8(property = '') {
   return new DecimalsLayout(property);
 }
+export function i32(property = "") {
+  return new BNLayout(4, property, true);
+}
 
 const Decimal = [u128('val'), u8('scale')];
+
+
+// SPL 
+export const TOKEN_ACCOUNT_LAYOUT = struct([
+  publicKeyLayout('mint'),
+  publicKeyLayout('owner'),
+  nu64('amount'),
+  u32('delegateOption'),
+  publicKeyLayout('delegate'),
+  u8('state'),
+  u32('isNativeOption'),
+  u64('isNative'),
+  u64('delegatedAmount'),
+  u32('closeAuthorityOption'),
+  publicKeyLayout('closeAuthority'),
+]);
+
+// SPL
+export const ACCOUNT_LAYOUT = struct([
+  publicKeyLayout('mint'),
+  publicKeyLayout('owner'),
+  u64('amount'),
+  u32('delegateOption'),
+  publicKeyLayout('delegate'),
+  u8('state'),
+  u32('isNativeOption'),
+  u64('isNative'),
+  u64('delegatedAmount'),
+  u32('closeAuthorityOption'),
+  publicKeyLayout('closeAuthority'),
+]);
+
 
 export const ADAPTER_INFO_LAYOUT = struct([
   u8('status'),
@@ -223,19 +258,6 @@ export const QUARRY_ADAPTER_ACCOUNT = struct([
   seq(publicKeyLayout(), 16, 'mints'),
 ]);
 
-export const ACCOUNT_LAYOUT = struct([
-  publicKeyLayout('mint'),
-  publicKeyLayout('owner'),
-  u64('amount'),
-  u32('delegateOption'),
-  publicKeyLayout('delegate'),
-  u8('state'),
-  u32('isNativeOption'),
-  u64('isNative'),
-  u64('delegatedAmount'),
-  u32('closeAuthorityOption'),
-  publicKeyLayout('closeAuthority'),
-]);
 
 export const MANGO_ADAPTER_ACCOUNT_LAYOUT = struct([
   u8('is_initialized'),
@@ -283,6 +305,7 @@ export const SOLEND_ADAPTOR_CHECK_ACCOUNT = struct([
 //   pub num_miners: u64,
 // }
 
+// quarry Protocol
 export const QUARRY_ACCOUNT = struct([
   u64('dummy'),
   publicKeyLayout('rewarder'),
@@ -298,7 +321,7 @@ export const QUARRY_ACCOUNT = struct([
   u64('total_tokens_deposited'),
   u64('num_miners'),
 ]);
-
+// quarry Protocol
 export const QUARRY_MINER_ACCOUNT = struct([
   u64('dummy'),
   publicKeyLayout('quarry'),
@@ -310,7 +333,7 @@ export const QUARRY_MINER_ACCOUNT = struct([
   u64('balance'),
   u64('index'),
 ]);
-
+// quarry Protocol
 export const QUARRY_REWARDER_ACCOUNT = struct([
   u64('dummy'),
   publicKeyLayout('base'),
@@ -328,16 +351,37 @@ export const QUARRY_REWARDER_ACCOUNT = struct([
   u8('is_paused'),
 ]);
 
-export const TOKEN_ACCOUNT_LAYOUT = struct([
-  publicKeyLayout('mint'),
-  publicKeyLayout('owner'),
-  nu64('amount'),
-  u32('delegateOption'),
-  publicKeyLayout('delegate'),
-  u8('state'),
-  u32('isNativeOption'),
-  u64('isNative'),
-  u64('delegatedAmount'),
-  u32('closeAuthorityOption'),
-  publicKeyLayout('closeAuthority'),
-]);
+
+export const ORCA_ADAPTER_ACCOUNT = struct([
+  u8('is_initialized'),
+  u8('bump'),
+  u8('status'),
+  u8('adapter'),
+  u8('count'),
+  publicKeyLayout('admin'),
+
+  seq(publicKeyLayout(), 16, 'whirlpools'),
+  seq(publicKeyLayout(), 16, 'mints'),
+])
+
+export const ORCA_POSITION_LAYOUT = struct([
+  u8('is_initialized'),
+  u8('position_index'), 
+  seq(u8(), 6, 'padding'),
+
+  publicKeyLayout('position_mint'),
+  publicKeyLayout('whirlpool'),
+  
+  i32('tick_lower_index'),
+  i32('tick_upper_index'),
+
+  u128('liquidity'),
+])
+
+export const ORCA_CHECK_ACCOUNT = struct([
+  // u16('position_count'),
+  // u16('position_size_count'), 
+  // u32('account_size'),
+  seq(POSITION_LAYOUT, 2, 'positions'),
+])
+

@@ -22,6 +22,10 @@ export const quarryAdapterProgramId = new PublicKey(
   'AQua28shfF31QEWMZT3Bh7dvhMW6pmLnZfvFH633Av9F'
 ); // new
 
+export const orcaAdapterProgramId = new PublicKey(
+  'AQua28shfF31QEWMZT3Bh7dvhMW6pmLnZfvFH633Av9F'
+); 
+
 export const mangoGAdapterPk = new PublicKey(
   '4XgfLujKRZarDw3gsRyvB1R2MQKb47p7ksa8MszwapVJ'
 );
@@ -35,6 +39,10 @@ export const quarryGAdapterPk = new PublicKey(
   '9w4eq2vZDLFTfM4tnCZrYyN4aFeKGNTWo2zaytSmJVqC'
 );
 
+export const orcaGAdapterPk = new PublicKey(
+  '9w4eq2vZDLFTfM4tnCZrYyN4aFeKGNTWo2zaytSmJVqC'
+);
+//  Protocol ProgramIds
 export const SerumProgramID = new PublicKey(
   'DESVgJVGajEgKGXhb6XmqDHGz3VjdgP7rEVESBgxmroY'
 );
@@ -63,6 +71,10 @@ export const saberProgramID = new PublicKey(
 );
 export const quarryProgramId = new PublicKey(
   'QMNeHCGYnLVDn1icRAfQZpjPLBNkfGbSKRB83G5d8KB'
+);
+
+export const orcaProgramId = new PublicKey(
+  'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc'
 );
 
 export const SYSTEM_PROGRAM_ID = new PublicKey(
@@ -102,6 +114,9 @@ export const QUARRY_REWARDER_ATA = new PublicKey(
 export const QUARRY_REWARD_MINT = new PublicKey(
   'iouQcQBAiEXe6cKLS85zmZxUqaCqBdeHFpqKoSz615u'
 );
+
+export const METAPLEX_TOKEN_METADATA = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+
 
 // ============== devnet ids
 // export const programId = new PublicKey('6bwEyARPB33sRkCR6kUuqE8KzbHQdebYUDvQfVLE3nrp')//('9RZ8Fgh2n5urcfkUw6jDHBn1DnrDaiitc9uuc8UevMeY');
