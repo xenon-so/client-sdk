@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Blob, seq, struct, u32, u8, u16, nu64, ns64 ,i32 } from 'buffer-layout';
+import { Blob, seq, struct, u32, u8, u16, nu64, ns64  } from 'buffer-layout';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 
@@ -382,6 +382,6 @@ export const ORCA_CHECK_ACCOUNT = struct([
   // u16('position_count'),
   // u16('position_size_count'), 
   // u32('account_size'),
-  seq(POSITION_LAYOUT, 2, 'positions'),
+  seq(ORCA_POSITION_LAYOUT, 2, 'positions'),
 ])
 
