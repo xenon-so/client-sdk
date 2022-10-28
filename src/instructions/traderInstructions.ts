@@ -257,14 +257,9 @@ export const borrow = async (
       { pubkey: xenonPDA, isSigner: false, isWritable: true }, //xenon State Account
       { pubkey: marginPDA, isSigner: false, isWritable: true },
       { pubkey: payer, isSigner: true, isWritable: true },
-
       { pubkey: xenonVaultAccount, isSigner: false, isWritable: true },
       { pubkey: marginVaultAccount, isSigner: false, isWritable: true },
-      {
-        pubkey: SYSVAR_INSTRUCTIONS_PUBKEY,
-        isSigner: false,
-        isWritable: false,
-      },
+      { pubkey: SYSVAR_INSTRUCTIONS_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     programId: programId,
@@ -2567,6 +2562,7 @@ export const handleInitializeOrcaAdapter = async (
 };
 
 // COMPLEX INSTRUCTION: Initialize HANDLES Tokens to be added to margin - Does Everything in same Trx
+//  add mints in Margin Account and also in localAdapter (2 places)
 export const handleInitializeOrcaAdapter2 = async (
   connection: Connection,
   xenonPDA: PublicKey,
@@ -2577,12 +2573,12 @@ export const handleInitializeOrcaAdapter2 = async (
   OrcaWhirlpool: OrcaWhirlpool
 )=> {
   
-  const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
+  const localAdapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
-  const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
+  const checkPDA = await PublicKey.findProgramAddress([localAdapterPDA[0].toBuffer()], orcaAdapterProgramId);
 
   console.log("marginPDA :", marginPDA);
-  console.log("adapterPDA:", adapterPDA);
+  console.log("localAdapterPDA:", localAdapterPDA);
 
   //  steps0 ::  find all tokens needed
   const tokensToCheck = [OrcaWhirlpool.tokenMintA, OrcaWhirlpool.tokenMintB];
@@ -2597,10 +2593,6 @@ export const handleInitializeOrcaAdapter2 = async (
   const marginAccTokenIndexToBeAdded: any = [];
   let tokensToBeInitCount = 0;
 
-  const localAdapterPDA = await PublicKey.findProgramAddress(
-    [marginPDA.toBuffer()],
-    orcaAdapterProgramId
-  );
   const localAdapterPDADataInfo = await connection.getAccountInfo(
     localAdapterPDA[0],
     'processed'
@@ -2691,7 +2683,7 @@ export const handleInitializeOrcaAdapter2 = async (
         { pubkey: orcaAdapterProgramId, isSigner: false, isWritable: false },
 
         { pubkey: gAdapterPDA[0], isSigner: false, isWritable: true },
-        { pubkey: adapterPDA[0], isSigner: false, isWritable: true },
+        { pubkey: localAdapterPDA[0], isSigner: false, isWritable: true },
         { pubkey: checkPDA[0], isSigner: false, isWritable: true },
         { pubkey: payer, isSigner: true, isWritable: true },
         { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
