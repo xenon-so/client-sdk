@@ -2696,7 +2696,7 @@ export const handleInitializeOrcaAdapter2 = async (
     transaction.add(instruction)
 };
 
-// NOTE : should be called before handleOrcaIncreaseLiquidity
+// NOTE : should be called before handleOrcaIncreaseLiquidity, and add the returned onetime used KEYPAIR to SIGNERS list of Transaction
 // ASSUMING all the margin tokens are Initialized
 export const handleOrcaOpenPosition = async (
   connection: Connection,
@@ -2707,7 +2707,7 @@ export const handleOrcaOpenPosition = async (
   OrcaWhirlpool: OrcaWhirlpool,
   tickLowerIndex: number,
   tickUpperIndex: number
-): Promise<PublicKey>  => {
+): Promise<Keypair>  => {
 
   //save positionMint
   let signers = []
@@ -2719,6 +2719,8 @@ export const handleOrcaOpenPosition = async (
   // console.log("positionPDA:", positionPda.publicKey.toBase58());
   const positionMetadataPda = PDAUtil.getPositionMetadata(positionMintNew.publicKey);
   // console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
+  // const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMintNew.publicKey, marginPDA, transaction);
+
   const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
@@ -2779,14 +2781,20 @@ export const handleOrcaOpenPosition = async (
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: METAPLEX_TOKEN_METADATA, isSigner: false, isWritable: false },
-      { pubkey: new PublicKey('3axbTs2z5GBy6usVbNVoqEgZMng3vZvMnAoX29BFfwhr'), isSigner: false, isWritable: true }, //metadata update auth : TODO ??
+      { pubkey: new PublicKey('3axbTs2z5GBy6usVbNVoqEgZMng3vZvMnAoX29BFfwhr'), isSigner: false, isWritable: true }, //metadata update auth 
     ],
     programId,
     data
   });
 
   transaction.add(instruction);
-  return positionMintNew.publicKey;
+  let hash = await connection.getLatestBlockhash();
+  transaction.feePayer =  payer;
+  transaction.recentBlockhash = hash.blockhash;
+  transaction.setSigners(payer, positionMintNew.publicKey)
+  transaction.partialSign(positionMintNew)
+
+  return positionMintNew;
 };
 
 // NOTE : should be called after handleOrcaOpenPosition
@@ -2800,10 +2808,12 @@ export const handleOrcaIncreaseLiquidity = async (
   WhirlpoolClient : WhirlpoolClient,
   OrcaWhirlpool: OrcaWhirlpool,
   positionMint: PublicKey,
+  tickLowerIndex: number,
+  tickUpperIndex: number,
   maxTokenAAmount : number,
   maxTokenBAmount : number,
 ) => { 
-  console.log("handle Orca Increase Liquidity clicked")
+  console.log("handle Orca Increase Liquidity for positionMint", positionMint.toBase58())
 
   const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
   const poolData = pool.getData();
@@ -2811,34 +2821,35 @@ export const handleOrcaIncreaseLiquidity = async (
   const token_b_vault = poolData.tokenVaultB;
   
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-  console.log("positionPDA:", positionPda);
-  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
-  console.log("positionTokenAccountAddress:", positionTokenAccountAddress);
+  // console.log("positionPDA:", positionPda);
+  const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    positionMint,
+    marginPDA,
+    true
+  );
+  // const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
+  // console.log("positionTokenAccountAddress:", positionTokenAccountAddress);
 
-  const position = await WhirlpoolClient.getPosition(positionPda.publicKey);
-  const positionData = position.getData()
     
   const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
 
-  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
-  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
-  console.log("token_a_user: ", token_a_user.toBase58())
-  console.log("token_b_user: ", token_b_user.toBase58())
+  const token_a_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenA.mint));
+  const token_b_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenB.mint));
  
  
   const tickSpacing = poolData.tickSpacing; //todo: get it from pool_data.tickSpacing
-  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(positionData.tickLowerIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
-  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(positionData.tickUpperIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
+  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(tickLowerIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
+  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(tickUpperIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
 
-  console.log("tick_array_lower:", tick_array_lower);
-  console.log("tick_array_upper:", tick_array_upper);
+  // console.log("tick_array_lower:", tick_array_lower);
+  // console.log("tick_array_upper:", tick_array_upper);
 
   // estimateLiquidityFromTokenAmounts
   const currTick = poolData.tickCurrentIndex;
-  const tickLowerIndex =  positionData.tickLowerIndex;
-  const tickUpperIndex = positionData.tickUpperIndex;
   const tokenAmount = toTokenAmount(maxTokenAAmount, maxTokenBAmount);
 
   const liquidityAmount = PoolUtil.estimateLiquidityFromTokenAmounts(
@@ -2922,9 +2933,9 @@ export const handleOrcaUpdateFeesAndReward =  async (
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-  console.log("positionPDA:", positionPda.publicKey.toBase58());
+  // console.log("positionPDA:", positionPda.publicKey.toBase58());
   const positionMetadataPda = PDAUtil.getPositionMetadata(positionMint);
-  console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
+  // console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
 
   const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
   const poolData = pool.getData();
@@ -2937,7 +2948,7 @@ export const handleOrcaUpdateFeesAndReward =  async (
   const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(positionData.tickLowerIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
   const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(positionData.tickUpperIndex, tickSpacing, new PublicKey(OrcaWhirlpool.address), orcaProgramId);
 
-  console.log("tick_array_lower:", tick_array_lower);
+  // console.log("tick_array_lower:", tick_array_lower);
 
   const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2')])
 
@@ -2965,7 +2976,7 @@ export const handleOrcaUpdateFeesAndReward =  async (
       { pubkey: payer, isSigner: true, isWritable: true }, //funder
       { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false }, 
 
-      { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
+      // { pubkey: marginPDA, isSigner: false, isWritable: true }, //position_auth - marginPDA
 
       { pubkey: orcaProgramId, isSigner: false, isWritable: false },
 
@@ -3000,10 +3011,15 @@ export const handleOrcaCollectFees = async (
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
-
-  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
-  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
+  const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    positionMint,
+    marginPDA,
+    true
+  );
+  const token_a_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenA.mint));
+  const token_b_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenB.mint));
 
   const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
   const poolData = pool.getData();
@@ -3060,6 +3076,7 @@ export const handleOrcaCollectFees = async (
 }
 
 //  Should be called multiple times for multiple rewards 
+// payer will collect rewards
 export const handleOrcaCollectRewards = async (
   connection: Connection,
   xenonPDA: PublicKey,
@@ -3077,8 +3094,13 @@ export const handleOrcaCollectRewards = async (
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-  const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
-  console.log("positionTokn:",  positionTokenAccountAddress)
+  const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    positionMint,
+    marginPDA,
+    true
+  );
 
   const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
   const poolData = pool.getData();
@@ -3086,7 +3108,11 @@ export const handleOrcaCollectRewards = async (
 
   // rewards will be directly send to marginAccounts owner wallet - so no need to check if exist on margin 
   for(let i=0;i<rewardInfos.length;i++){
-      const reward_owner = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(rewardInfos[i].mint), payer, transaction);// users ATA
+      console.log("rewardInfos[i].mint:",rewardInfos[i].mint.toBase58());
+      if(!rewardInfos[i]?.mint || rewardInfos[i].mint.toBase58()==PublicKey.default.toBase58()){
+        continue;
+      }
+      const reward_owner = await createAssociatedTokenAccountIfNotExist(connection, payer, rewardInfos[i].mint, payer, transaction);// payer will collect rewards
       const reward_vault = new PublicKey(rewardInfos[i].vault);
       console.log("reward_owner:", reward_owner.toBase58())
       console.log("rewrd_vault:", reward_vault.toBase58());
@@ -3098,8 +3124,8 @@ export const handleOrcaCollectRewards = async (
         {
           instruction: 10,
           adapter_index: 4,
-          instruction1: 0x46058457,
-          instruction2: 0x56ebb122,
+          instruction1:  new BigNumber('0x46058457'),
+          instruction2:  new BigNumber('0x56ebb122'),
           reward_index: i
         },
       data
@@ -3155,22 +3181,27 @@ export const handleOrcaDecreaseLiquidity = async (
     console.log("handle Orca decrease Liquidity clicked")
 
     const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-    const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction)
-
+    const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      positionMint,
+      marginPDA,
+      true
+    );
     const position = await WhirlpoolClient.getPosition(positionPda.publicKey);
     const positionData = position.getData()
 
     const liquidity_amount = positionData.liquidity;
-    console.log("SOL USDC positionData:",liquidity_amount.toString())
+    console.log(" liquidity_amount:",liquidity_amount.toString())
 
     const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
     const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
     const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
-    const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
-    const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
-    console.log("token_a_user: ", token_a_user.toBase58())
-    console.log("token_b_user: ", token_b_user.toBase58())
+    const token_a_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenA.mint));
+    const token_b_user = await findAssociatedTokenAddress(marginPDA, new PublicKey(OrcaWhirlpool.tokenB.mint));
+    // console.log("token_a_user: ", token_a_user.toBase58())
+    // console.log("token_b_user: ", token_b_user.toBase58())
 
     const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
     const poolData = pool.getData();
@@ -3253,8 +3284,13 @@ export const handleOrcaClosePosition = async (
     const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
     const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
-    const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
-
+    const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      positionMint,
+      marginPDA,
+      true
+    );
     const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2')])
 
     const data = Buffer.alloc(dataLayout.span)

@@ -457,7 +457,7 @@ export class XenonTraderClient {
     maxTokenAAmount: number,
     maxTokenBAmount: number
   ) {
-    const positionMint : PublicKey = await traderInstructions.handleOrcaOpenPosition(
+    const positionMintKeypair : Keypair = await traderInstructions.handleOrcaOpenPosition(
       this.connection,
       this.xenonPDA!,
       this.marginPDA!,
@@ -467,7 +467,7 @@ export class XenonTraderClient {
       tickLowerIndex,
       tickUpperIndex
     );
-    return traderInstructions.handleOrcaIncreaseLiquidity(
+    await traderInstructions.handleOrcaIncreaseLiquidity(
       this.connection,
       this.xenonPDA!,
       this.marginPDA!,
@@ -475,11 +475,13 @@ export class XenonTraderClient {
       transaction,
       this.WhirlpoolClient,
       OrcaWhirlpool,
-      positionMint,
+      positionMintKeypair.publicKey,
+      tickLowerIndex,
+      tickUpperIndex,
       maxTokenAAmount,
       maxTokenBAmount
     );
-
+      return positionMintKeypair;
   }
 
   async orcaWithdraw(
@@ -522,7 +524,7 @@ export class XenonTraderClient {
       OrcaWhirlpool,
       positionMint,
     )
-    return traderInstructions.handleOrcaDecreaseLiquidity(
+    await traderInstructions.handleOrcaDecreaseLiquidity(
       this.connection,
       this.xenonPDA!,
       this.marginPDA!,
@@ -535,6 +537,16 @@ export class XenonTraderClient {
       liquidityAmountBN,
       tokenMinA,
       tokenMinB,
+    )
+    await traderInstructions.handleOrcaClosePosition(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
     )
   }
 
