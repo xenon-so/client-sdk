@@ -33,7 +33,8 @@ class BNLayout extends Blob {
   }
 
   encode(src: BN, b: Buffer, offset?: number) {
-    return super.encode(src.toArrayLike(Buffer, 'le', this['span']), b, offset);
+    const nsrc = new BN(src);
+    return super.encode(nsrc.toArrayLike(Buffer, 'le', this['span']), b, offset);
   }
 }
 

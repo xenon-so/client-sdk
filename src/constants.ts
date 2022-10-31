@@ -23,7 +23,7 @@ export const quarryAdapterProgramId = new PublicKey(
 ); // new
 
 export const orcaAdapterProgramId = new PublicKey(
-  'AQua28shfF31QEWMZT3Bh7dvhMW6pmLnZfvFH633Av9F'
+  'AorcqpENHMDPivf3S9SahD3Z53Lm2vjHQ9fRfXxhRrpP'
 ); 
 
 export const mangoGAdapterPk = new PublicKey(

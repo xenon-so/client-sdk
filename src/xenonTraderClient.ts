@@ -438,7 +438,7 @@ export class XenonTraderClient {
 
   // Orca specific methods ===================
   async initializeOrcaAdaptor(transaction: Transaction, OrcaWhirlpool : OrcaWhirlpool) {
-    return traderInstructions.handleInitializeOrcaAdapter(
+    return traderInstructions.handleInitializeOrcaAdapter2(
       this.connection,
       this.xenonPDA!,
       this.xenonPdaData!,
