@@ -3298,8 +3298,8 @@ export const handleOrcaClosePosition = async (
       {
         instruction: 10,
         adapter_index: 4,
-        instruction1: 0x7b865100,
-        instruction2: 0x31446262,
+        instruction1: new BigNumber('0x7b865100'),
+        instruction2: new BigNumber('0x31446262'),
       },
     data
     )

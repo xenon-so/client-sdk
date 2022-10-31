@@ -379,10 +379,24 @@ export const ORCA_POSITION_LAYOUT = struct([
   u128('liquidity'),
 ])
 
+export const ORCA_CHECK_ACCOUNT_POSITION_COUNT = struct([
+  u8('position_count'),
+])
+
+export const getCheckAccountLayoutForPositionsCounts =  (count : number) => {
+   const ORCA_CHECK_ACCOUNT = struct([
+    u8('position_count'),
+    // u16('position_size_count'), 
+    // u32('account_size'),
+    seq(ORCA_POSITION_LAYOUT, count, 'positions'),
+  ])
+  return ORCA_CHECK_ACCOUNT;
+}
+
 export const ORCA_CHECK_ACCOUNT = struct([
-  // u16('position_count'),
+  u8('position_count'),
   // u16('position_size_count'), 
   // u32('account_size'),
-  seq(ORCA_POSITION_LAYOUT, 2, 'positions'),
+  seq(ORCA_POSITION_LAYOUT, 1, 'positions'),
 ])
 
