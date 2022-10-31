@@ -45,7 +45,7 @@ export class XenonTraderClient {
   }
 
   async load(): Promise<void> {
-    this.xenonPdaData = await getXenonAccountData(this.connection, xenonPDA);
+    this.xenonPdaData = await getXenonAccountData(this.connection, this.xenonPDA);
     const marginAccount = await getTraderMarginPDA(
       this.connection,
       this.trader
@@ -441,8 +441,8 @@ export class XenonTraderClient {
     return traderInstructions.handleInitializeOrcaAdapter(
       this.connection,
       this.xenonPDA!,
-      this.xenonPDA!,
-      this.marginPDA!,
+      this.xenonPdaData!,
+      this.marginPDA,
       this.trader,
       transaction,
       OrcaWhirlpool,

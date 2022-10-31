@@ -40,7 +40,7 @@ export const quarryGAdapterPk = new PublicKey(
 );
 
 export const orcaGAdapterPk = new PublicKey(
-  '9w4eq2vZDLFTfM4tnCZrYyN4aFeKGNTWo2zaytSmJVqC'
+  'AorcqpENHMDPivf3S9SahD3Z53Lm2vjHQ9fRfXxhRrpP'
 );
 //  Protocol ProgramIds
 export const SerumProgramID = new PublicKey(

@@ -52,6 +52,7 @@ import {
   findAssociatedTokenAddress,
 } from '../utils/web3Utils';
 import BN from 'bn.js';
+import BigNumber from 'bignumber.js';
 import {
   ADAPTER_ACCOUNT_LAYOUT,
   i32,
@@ -77,7 +78,6 @@ import {
   SOLEND_RESERVE,
 } from '../utils/solendMarkets';
 import { Saber_LP } from '../utils/saberList';
-import BigNumber from 'bignumber.js';
 import {
   getLocalAdapterTokenIndexHelper,
   getMarginPDATokenIndexHelper,
@@ -2487,8 +2487,8 @@ export const handleInitializeOrcaAdapter = async (
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
 
-  console.log("marginPDA :", marginPDA);
-  console.log("adapterPDA:", adapterPDA);
+  // console.log("marginPDA :", marginPDA);
+  // console.log("adapterPDA:", adapterPDA);
 
   //  check mints to be added in margin 3 mints 
   // margin accc token A and B ( 1,2)   
@@ -2496,7 +2496,7 @@ export const handleInitializeOrcaAdapter = async (
   if (!marginInfo) throw new Error('No margin account found!');
   let marginData = MARGIN_DATA_LAYOUT.decode(marginInfo.data);
 
-  const tokensToCheck = [OrcaWhirlpool.tokenMintA, OrcaWhirlpool.tokenMintB];
+  const tokensToCheck = [OrcaWhirlpool.tokenA.mint, OrcaWhirlpool.tokenB.mint];
   let marginTokenIndexsToBeAdded = []
   for(let i=0;i<2;i++){
       const index = getXenonPDATokenIndexHelper(
@@ -2577,11 +2577,11 @@ export const handleInitializeOrcaAdapter2 = async (
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
   const checkPDA = await PublicKey.findProgramAddress([localAdapterPDA[0].toBuffer()], orcaAdapterProgramId);
 
-  console.log("marginPDA :", marginPDA);
-  console.log("localAdapterPDA:", localAdapterPDA);
+  // console.log("marginPDA :", marginPDA);
+  // console.log("localAdapterPDA:", localAdapterPDA);
 
   //  steps0 ::  find all tokens needed
-  const tokensToCheck = [OrcaWhirlpool.tokenMintA, OrcaWhirlpool.tokenMintB];
+  const tokensToCheck = [OrcaWhirlpool.tokenA.mint, OrcaWhirlpool.tokenB.mint];
 
   const tokenData = await handleAddTokensToMargin(
     connection, xenonPDA, xenonPdaData, marginPDA, payer, tokensToCheck.map(f => new PublicKey(f)), transaction);
@@ -2710,16 +2710,15 @@ export const handleOrcaOpenPosition = async (
 ): Promise<PublicKey>  => {
 
   //save positionMint
-  console.log("handle Orca Open Position clicked")
   let signers = []
   const positionMintNew = Keypair.generate();
-  console.log("positionMintNew::", positionMintNew.publicKey.toBase58());
+  // console.log("positionMintNew::", positionMintNew.publicKey.toBase58());
   signers.push(positionMintNew)
 
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMintNew.publicKey);
-  console.log("positionPDA:", positionPda.publicKey.toBase58());
+  // console.log("positionPDA:", positionPda.publicKey.toBase58());
   const positionMetadataPda = PDAUtil.getPositionMetadata(positionMintNew.publicKey);
-  console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
+  // console.log("positionMetadata: ", positionMetadataPda.publicKey.toBase58());
   const positionTokenAccountAddress = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
@@ -2731,17 +2730,18 @@ export const handleOrcaOpenPosition = async (
   const adapterPDA = await PublicKey.findProgramAddress([marginPDA.toBuffer()], orcaAdapterProgramId);
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
-  console.log("checkPDA:", checkPDA);
+  // console.log("checkPDA:", checkPDA);
 
-  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'),  u32be('instruction2'), u8('position_bump'), u8('metadata_bump'), i32('tick_lower_index'), i32('tick_upper_index')])
+  const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2'), u8('position_bump'), u8('metadata_bump'), i32('tick_lower_index'), i32('tick_upper_index')])
 
+  console.log("positionPda.bump, ",positionPda.bump,positionMetadataPda.bump,tickLowerIndex,tickUpperIndex)
   const data = Buffer.alloc(dataLayout.span)
   dataLayout.encode(
     {
       instruction: 10,
       adapter_index: 4,
-      instruction1: new BN('0xf21d8630'),
-      instruction2: new BN('0x3a6e0e3c'),
+      instruction1: new BigNumber('0xf21d8630'),
+      instruction2: new BigNumber('0x3a6e0e3c'),
       position_bump:  positionPda.bump,
       metadata_bump:  positionMetadataPda.bump,
       tick_lower_index: tickLowerIndex,
@@ -2822,8 +2822,8 @@ export const handleOrcaIncreaseLiquidity = async (
   const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
   const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId);
 
-  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
-  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
+  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
   console.log("token_a_user: ", token_a_user.toBase58())
   console.log("token_b_user: ", token_b_user.toBase58())
  
@@ -2856,8 +2856,8 @@ export const handleOrcaIncreaseLiquidity = async (
     {
       instruction: 10,
       adapter_index: 4,
-      instruction1: new BN('0x2e9cf376'),
-      instruction2: new BN('0x0dcdfbb2'),
+      instruction1: new BigNumber('0x2e9cf376'),
+      instruction2: new BigNumber('0x0dcdfbb2'),
       liquidity_amount: liquidityAmount,
       token_max_a: maxTokenAAmount ,
       token_max_b: maxTokenBAmount
@@ -2946,8 +2946,8 @@ export const handleOrcaUpdateFeesAndReward =  async (
     {
       instruction: 10,
       adapter_index: 4,
-      instruction1: new BN('0x9ae6fa0d'),
-      instruction2: new BN('0xecd14bdf'),
+      instruction1: new BigNumber('0x9ae6fa0d'),
+      instruction2: new BigNumber('0xecd14bdf'),
     },
   data
   )
@@ -3002,8 +3002,8 @@ export const handleOrcaCollectFees = async (
   const positionPda = PDAUtil.getPosition(orcaProgramId, positionMint);
   const positionTokenAccountAddress = await createAssociatedTokenAccountIfNotExist(connection, payer, positionMint, marginPDA, transaction);
 
-  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
-  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+  const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
+  const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
 
   const pool = await WhirlpoolClient.getPool(OrcaWhirlpool.address);
   const poolData = pool.getData();
@@ -3017,8 +3017,8 @@ export const handleOrcaCollectFees = async (
     {
       instruction: 10,
       adapter_index: 4,
-      instruction1: 0xa498cf63,
-      instruction2: 0x1eba13b6,
+      instruction1: new BigNumber('0xa498cf63'),
+      instruction2: new BigNumber('0x1eba13b6'),
     },
   data
   )
@@ -3167,8 +3167,8 @@ export const handleOrcaDecreaseLiquidity = async (
     const gAdapterPDA = await PublicKey.findProgramAddress([Buffer.from("orca")], orcaAdapterProgramId);
     const checkPDA = await PublicKey.findProgramAddress([adapterPDA[0].toBuffer()], orcaAdapterProgramId)
 
-    const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintA), marginPDA, transaction);
-    const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenMintB), marginPDA, transaction);
+    const token_a_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenA.mint), marginPDA, transaction);
+    const token_b_user = await createAssociatedTokenAccountIfNotExist(connection, payer, new PublicKey(OrcaWhirlpool.tokenB.mint), marginPDA, transaction);
     console.log("token_a_user: ", token_a_user.toBase58())
     console.log("token_b_user: ", token_b_user.toBase58())
 
@@ -3189,8 +3189,8 @@ export const handleOrcaDecreaseLiquidity = async (
       {
         instruction: 10,
         adapter_index: 4,
-        instruction1: 0xa026d06f,
-        instruction2: 0x685b2c01,
+        instruction1: new BigNumber('0xa026d06f'),
+        instruction2: new BigNumber('0x685b2c01'),
         liqiuidity_amount: withdrawFull ? liquidity_amount : liquidityAmountBN, //withdrawing 100%
         token_min_a: tokenMinA,
         token_min_b: tokenMinB,
