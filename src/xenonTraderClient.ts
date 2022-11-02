@@ -484,6 +484,43 @@ export class XenonTraderClient {
       return positionMintKeypair;
   }
 
+  async orcaHarvest(
+    transaction: Transaction,
+    OrcaWhirlpool: OrcaWhirlpool,
+    positionMint: PublicKey,
+  ) {
+    await traderInstructions.handleOrcaUpdateFeesAndReward(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    );
+    await traderInstructions.handleOrcaCollectFees(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    )
+   await traderInstructions.handleOrcaCollectRewards(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+    )
+  }
+
   async orcaWithdraw(
     transaction: Transaction,
     OrcaWhirlpool: OrcaWhirlpool,
@@ -538,16 +575,19 @@ export class XenonTraderClient {
       tokenMinA,
       tokenMinB,
     )
-    await traderInstructions.handleOrcaClosePosition(
-      this.connection,
-      this.xenonPDA!,
-      this.marginPDA!,
-      this.trader,
-      transaction,
-      this.WhirlpoolClient,
-      OrcaWhirlpool,
-      positionMint,
-    )
+    if(withdrawFull){
+      await traderInstructions.handleOrcaClosePosition(
+        this.connection,
+        this.xenonPDA!,
+        this.marginPDA!,
+        this.trader,
+        transaction,
+        this.WhirlpoolClient,
+        OrcaWhirlpool,
+        positionMint,
+      )
+    }
+    
   }
 
   // Global methods

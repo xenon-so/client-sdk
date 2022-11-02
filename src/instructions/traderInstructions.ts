@@ -2858,7 +2858,7 @@ export const handleOrcaIncreaseLiquidity = async (
     tickUpperIndex,
     tokenAmount
   );
-  console.log("liquidityAmount ::",liquidityAmount.toString())
+  console.log("liquidityAmount ::",liquidityAmount.toString(),maxTokenAAmount, maxTokenBAmount)
 
   const dataLayout = struct([ u8('instruction'), u8('adapter_index'), u32be('instruction1'), u32be('instruction2'), u128('liquidity_amount'), nu64('token_max_a'), nu64('token_max_b')])
 
@@ -2869,8 +2869,8 @@ export const handleOrcaIncreaseLiquidity = async (
       adapter_index: 4,
       instruction1: new BigNumber('0x2e9cf376'),
       instruction2: new BigNumber('0x0dcdfbb2'),
-      liquidity_amount: liquidityAmount,
-      token_max_a: maxTokenAAmount ,
+      liquidity_amount: liquidityAmount.toNumber()*0.99,
+      token_max_a: maxTokenAAmount,
       token_max_b: maxTokenBAmount
     },
   data
