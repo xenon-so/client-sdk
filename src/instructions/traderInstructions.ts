@@ -2842,8 +2842,8 @@ export const handleOrcaIncreaseLiquidity = async (
  
  
   const tickSpacing = poolData.tickSpacing; //todo: get it from pool_data.tickSpacing
-  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(tickLowerIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
-  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(tickUpperIndex, tickSpacing, new PublicKey('HJPjoWUrhoZzkNfRpHuieeFk9WcZWjwy6PBjZ81ngndJ'), orcaProgramId);
+  const tick_array_lower = PDAUtil.getTickArrayFromTickIndex(tickLowerIndex, tickSpacing, pool.getAddress(), orcaProgramId);
+  const tick_array_upper = PDAUtil.getTickArrayFromTickIndex(tickUpperIndex, tickSpacing, pool.getAddress(), orcaProgramId);
 
   // console.log("tick_array_lower:", tick_array_lower);
   // console.log("tick_array_upper:", tick_array_upper);

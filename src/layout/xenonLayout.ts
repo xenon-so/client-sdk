@@ -22,18 +22,25 @@ export function publicKeyLayout(property = '') {
 }
 
 class BNLayout extends Blob {
-  constructor(number: number, property: string) {
+  signed: boolean;
+
+  constructor(number: number, property, signed = false) {
     super(number, property);
+    this.signed = signed;
+
     // restore prototype chain
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
-  decode(b: Buffer, offset?: number) {
-    return new BN(super.decode(b, offset), 10, 'le');
+  decode(b, offset) {
+    let result = new BN(super.decode(b, offset), 10, 'le');
+    if (this.signed) result = result.fromTwos(8 * this['length']);
+    return result;
   }
 
-  encode(src: BN, b: Buffer, offset?: number) {
-    const nsrc = new BN(src);
+  encode(src, b, offset) {
+    let nsrc = new BN(src);
+    if (this.signed) nsrc = nsrc.toTwos(8 * this['length']);
     return super.encode(nsrc.toArrayLike(Buffer, 'le', this['span']), b, offset);
   }
 }
