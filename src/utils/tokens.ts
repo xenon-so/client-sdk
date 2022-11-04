@@ -279,6 +279,19 @@ export const mainnetTokens: TokenInfos = {
     logoURI:
       'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/SUSeGZEV69Xy7rQfhDffyTysHgEP3nJUDMxEZJSvJr1/icon.png',
   },
+  ORCA: {
+    chainId: 101,
+    mintAddress: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
+    symbol: 'orca',
+    name: 'orca',
+    decimals: 9,
+    tokenType: 'GENERAL',
+    logoURI:
+      'https://assets.coingecko.com/coins/images/17547/small/Orca_Logo.png?1628781615',
+    extensions: {
+      coingeckoId: 'orca',
+    },
+  },
 };
 
 export const TOKENS = isMainnet ? mainnetTokens : devnetTokens;
