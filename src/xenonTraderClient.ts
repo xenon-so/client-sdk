@@ -449,6 +449,33 @@ export class XenonTraderClient {
     );
   }
 
+  async orcaIncreaseLiquidity(
+    transaction: Transaction,
+    OrcaWhirlpool: OrcaWhirlpool,
+    positionMint: PublicKey,
+    tickLowerIndex: number,
+    tickUpperIndex: number,
+    maxTokenAAmount: number,
+    maxTokenBAmount: number
+  ) {
+   
+    await traderInstructions.handleOrcaIncreaseLiquidity(
+      this.connection,
+      this.xenonPDA!,
+      this.marginPDA!,
+      this.trader,
+      transaction,
+      this.WhirlpoolClient,
+      OrcaWhirlpool,
+      positionMint,
+      tickLowerIndex,
+      tickUpperIndex,
+      maxTokenAAmount,
+      maxTokenBAmount
+    );
+      
+  }
+
   async orcaDeposit(
     transaction: Transaction,
     OrcaWhirlpool: OrcaWhirlpool,
